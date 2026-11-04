@@ -49,13 +49,13 @@ async function activate(slug: string): Promise<void> {
 
     try {
         const response = await demoApi.activatePlan(slug);
-        toast.success(response.message ?? 'Plano demo ativado.');
+        toast.success(response.message ?? 'Plano ativado.');
         router.reload();
     } catch (error) {
         toast.error(
             error instanceof Error
                 ? error.message
-                : 'Não foi possível ativar o plano demo.',
+                : 'Não foi possível ativar o plano.',
         );
     } finally {
         loadingSlug.value = null;
@@ -69,8 +69,8 @@ async function activate(slug: string): Promise<void> {
     <div class="space-y-0.5">
         <h1 class="text-xl font-semibold tracking-tight">Planos</h1>
         <p class="text-sm text-muted-foreground">
-            Planos fictícios que liberam as informações ocultas. Nenhum
-            pagamento é solicitado.
+            Planos que liberam as informações ocultas. A ativação não exige
+            pagamento.
         </p>
     </div>
 
@@ -127,7 +127,7 @@ async function activate(slug: string): Promise<void> {
                     {{
                         plan.active && plan.slug === item.slug
                             ? 'Plano atual'
-                            : 'Ativar plano demo'
+                            : 'Ativar plano'
                     }}
                 </Button>
             </CardFooter>

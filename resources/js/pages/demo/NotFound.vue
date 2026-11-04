@@ -34,8 +34,8 @@ defineProps<{
         <CardHeader>
             <CardTitle>Registro não encontrado</CardTitle>
             <CardDescription>
-                O ID <span class="font-mono">{{ publicId }}</span> não existe no
-                seed de demonstração (HTTP 404).
+                O ID <span class="font-mono">{{ publicId }}</span> não foi
+                encontrado.
             </CardDescription>
         </CardHeader>
         <CardContent class="grid gap-2">

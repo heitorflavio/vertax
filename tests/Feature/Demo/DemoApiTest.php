@@ -32,13 +32,13 @@ test('lista os registros fictícios disponíveis', function () {
 });
 
 test('busca válida retorna dados fictícios, fontes e score de confiança', function () {
-    $response = $this->getJson('/api/demo/consulta/DEMO-0001');
+    $response = $this->getJson('/api/demo/consulta/REG-0001');
 
     $response
         ->assertOk()
         ->assertJsonPath('demo', true)
-        ->assertJsonPath('data.public_id', 'DEMO-0001')
-        ->assertJsonPath('data.full_name', 'Aurora Fictícia Mendes')
+        ->assertJsonPath('data.public_id', 'REG-0001')
+        ->assertJsonPath('data.full_name', 'Aurora Mendes Lacerda')
         ->assertJsonPath('data.hidden_locked', true)
         ->assertJsonPath('data.hidden', null)
         ->assertJsonPath('data.sources_count', 4)
@@ -66,7 +66,7 @@ test('busca válida retorna dados fictícios, fontes e score de confiança', fun
     expect($score)->toBeGreaterThan(0)->toBeLessThanOrEqual(100);
 
     // O valor oculto não deve vazar sem plano ativo.
-    $response->assertDontSee('CX-DEMO-1001');
+    $response->assertDontSee('PRT-1001');
 });
 
 test('busca inválida retorna 404 com mensagem de demonstração', function () {
@@ -76,7 +76,7 @@ test('busca inválida retorna 404 com mensagem de demonstração', function () {
         ->assertNotFound()
         ->assertJsonPath('demo', true)
         ->assertJsonPath('error', 'demo_record_not_found')
-        ->assertJsonPath('message', 'Registro fictício não encontrado. Este ambiente é uma demonstração; use um ID existente no seed.')
+        ->assertJsonPath('message', 'Registro não encontrado. Use um ID existente.')
         ->assertJsonStructure(['available_ids']);
 });
 
@@ -89,7 +89,7 @@ test('ativação de plano demo ativa a sessão sem pagamento', function () {
         ->assertOk()
         ->assertJsonPath('data.active', true)
         ->assertJsonPath('data.slug', 'demo-pro')
-        ->assertJsonPath('message', 'Plano demo ativado. Nenhum pagamento foi realizado: este é um protótipo.');
+        ->assertJsonPath('message', 'Plano ativado. Nenhum pagamento foi realizado.');
 
     $this->getJson('/api/demo/status')
         ->assertOk()
@@ -98,18 +98,18 @@ test('ativação de plano demo ativa a sessão sem pagamento', function () {
 });
 
 test('informações ocultas são bloqueadas sem plano e reveladas com plano ativo', function () {
-    $blocked = $this->getJson('/api/demo/consulta/DEMO-0001')
+    $blocked = $this->getJson('/api/demo/consulta/REG-0001')
         ->assertOk()
         ->assertJsonPath('data.hidden_locked', true)
         ->assertJsonPath('data.hidden', null)
         ->assertJsonPath('data.hidden_fields_count', 6);
 
-    $blocked->assertDontSee('CX-DEMO-1001');
+    $blocked->assertDontSee('PRT-1001');
 
     $this->postJson('/api/demo/plano/ativar', ['plan_slug' => 'demo-pro'])
         ->assertOk();
 
-    $revealed = $this->getJson('/api/demo/consulta/DEMO-0001')
+    $revealed = $this->getJson('/api/demo/consulta/REG-0001')
         ->assertOk()
         ->assertJsonPath('data.hidden_locked', false)
         ->assertJsonStructure([
@@ -120,30 +120,30 @@ test('informações ocultas são bloqueadas sem plano e reveladas com plano ativ
             ],
         ]);
 
-    $revealed->assertSee('CX-DEMO-1001');
+    $revealed->assertSee('PRT-1001');
 });
 
 test('consulta válida pode ser avaliada depois da busca', function () {
-    $this->getJson('/api/demo/consulta/DEMO-0003')->assertOk();
+    $this->getJson('/api/demo/consulta/REG-0003')->assertOk();
 
-    $this->postJson('/api/demo/consulta/DEMO-0003/avaliar', ['helpful' => true])
+    $this->postJson('/api/demo/consulta/REG-0003/avaliar', ['helpful' => true])
         ->assertOk()
         ->assertJsonPath('data.feedback', 'helpful')
-        ->assertJsonPath('message', 'Obrigado! Sua avaliação ajuda a demonstrar o fluxo de qualidade dos dados.');
+        ->assertJsonPath('message', 'Obrigado! Avaliação registrada.');
 
-    expect(DemoRecord::query()->where('public_id', 'DEMO-0003')->first()->consultations_count)->toBe(1);
+    expect(DemoRecord::query()->where('public_id', 'REG-0003')->first()->consultations_count)->toBe(1);
 });
 
 test('registro com menor completude recebe score menor que um registro completo', function () {
-    $complete = DemoRecord::query()->where('public_id', 'DEMO-0001')->first();
-    $incomplete = DemoRecord::query()->where('public_id', 'DEMO-0005')->first();
+    $complete = DemoRecord::query()->where('public_id', 'REG-0001')->first();
+    $incomplete = DemoRecord::query()->where('public_id', 'REG-0005')->first();
 
     expect($complete->trust_score)->toBeGreaterThan($incomplete->trust_score);
     expect($incomplete->trust_breakdown['completeness'])->toBeLessThan(100);
 });
 
 test('consulta exibe o CPF fictício completo e a listagem mantém o CPF mascarado', function () {
-    $this->getJson('/api/demo/consulta/DEMO-0001')
+    $this->getJson('/api/demo/consulta/REG-0001')
         ->assertOk()
         ->assertJsonPath('data.cpf', '301.482.115-10')
         ->assertJsonPath('data.cpf_masked', '***.482.***-10')

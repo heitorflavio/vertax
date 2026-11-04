@@ -131,9 +131,7 @@ const props = defineProps<{
         <Card class="lg:col-span-2">
             <CardHeader>
                 <CardTitle>Módulos</CardTitle>
-                <CardDescription
-                    >Catálogo de módulos de exemplo.</CardDescription
-                >
+                <CardDescription>Módulos disponíveis.</CardDescription>
                 <CardAction>
                     <Button variant="link" size="sm" as-child>
                         <Link :href="demo.modules()">Ver todos</Link>
@@ -154,7 +152,7 @@ const props = defineProps<{
                         <span class="flex-1 truncate text-sm">
                             {{ module.name }}
                         </span>
-                        <Badge variant="outline">{{ module.badge }}</Badge>
+                        <Badge variant="outline">{{ module.category }}</Badge>
                     </li>
                 </ul>
             </CardContent>

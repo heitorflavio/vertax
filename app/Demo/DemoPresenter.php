@@ -172,7 +172,7 @@ class DemoPresenter
 
             $sources[] = [
                 'slug' => $source === null ? null : $source->slug,
-                'name' => $source === null ? 'Fonte demo' : $source->name,
+                'name' => $source === null ? 'Fonte' : $source->name,
                 'category' => $source === null ? null : $source->category,
                 'reliability' => $row->reliability_score,
                 'match_score' => $row->match_score,

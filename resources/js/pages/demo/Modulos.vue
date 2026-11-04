@@ -48,7 +48,7 @@ const filteredModules = computed(() =>
     <div class="space-y-0.5">
         <h1 class="text-xl font-semibold tracking-tight">Módulos</h1>
         <p class="text-sm text-muted-foreground">
-            Catálogo de módulos de exemplo. Nenhum deles consulta fontes reais.
+            Módulos disponíveis, por categoria.
         </p>
     </div>
 
@@ -74,7 +74,7 @@ const filteredModules = computed(() =>
                 <CardTitle>{{ module.name }}</CardTitle>
                 <CardDescription>{{ module.description }}</CardDescription>
                 <CardAction>
-                    <Badge variant="outline">{{ module.badge }}</Badge>
+                    <Badge variant="outline">{{ module.category }}</Badge>
                 </CardAction>
             </CardHeader>
         </Card>

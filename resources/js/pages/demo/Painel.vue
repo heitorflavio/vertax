@@ -100,7 +100,7 @@ async function sync(): Promise<void> {
         <div class="space-y-0.5">
             <h1 class="text-xl font-semibold tracking-tight">Painel</h1>
             <p class="text-sm text-muted-foreground">
-                Registros do seed, fontes simuladas e última ingestão.
+                Registros, fontes e última ingestão.
             </p>
         </div>
         <Button variant="outline" :disabled="syncing" @click="sync">
@@ -187,7 +187,7 @@ async function sync(): Promise<void> {
             <CardHeader>
                 <CardTitle>Fontes</CardTitle>
                 <CardDescription>
-                    Provedores fictícios e o peso de cada um no merge.
+                    Provedores e o peso de cada um no merge.
                 </CardDescription>
             </CardHeader>
             <CardContent>

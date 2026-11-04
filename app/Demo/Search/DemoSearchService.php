@@ -2,6 +2,7 @@
 
 namespace App\Demo\Search;
 
+use App\Demo\DemoConfig;
 use App\Models\DemoRecord;
 use App\Models\DemoSearchTerm;
 use Closure;
@@ -44,7 +45,7 @@ class DemoSearchService
     {
         $query = trim($query);
 
-        if (preg_match('/^DEMO-\d+$/i', $query) === 1) {
+        if (preg_match('/^'.DemoConfig::PUBLIC_ID_PREFIX.'-\d+$/i', $query) === 1) {
             $record = DemoRecord::query()->publicId($query)->first();
 
             return [

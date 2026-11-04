@@ -9,25 +9,28 @@ beforeEach(function () {
 });
 
 test('busca por nome ignora acento e maiúsculas e lista os resultados', function () {
-    $this->get('/buscar?q=aurora FICTICIA')
+    $this->get('/buscar?q=aurora LACERDA')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('demo/Busca')
-            ->where('query', 'aurora FICTICIA')
+            ->where('query', 'aurora LACERDA')
             ->has('results', 1)
-            ->where('results.0.public_id', 'DEMO-0001')
+            ->where('results.0.public_id', 'REG-0001')
             ->where('results.0.matched_by', 'name')
             ->where('results.0.cpf_masked', '***.482.***-10')
         );
 });
 
 test('busca parcial por nome pode trazer vários registros', function () {
+    // "ra" aparece em Aurora, Cora, Moreira e Teixeira.
     $this->get('/buscar?q=ra')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->has('results', 2)
-            ->where('results.0.public_id', 'DEMO-0001')
-            ->where('results.1.public_id', 'DEMO-0003')
+            ->has('results', 4)
+            ->where('results.0.public_id', 'REG-0001')
+            ->where('results.1.public_id', 'REG-0003')
+            ->where('results.2.public_id', 'REG-0004')
+            ->where('results.3.public_id', 'REG-0006')
         );
 });
 
@@ -35,19 +38,19 @@ test('documento, e-mail ou telefone com um único resultado abre a consulta', fu
     $this->get('/buscar?q='.urlencode($query))
         ->assertRedirect("/consultas/{$publicId}");
 })->with([
-    'CPF formatado' => ['301.482.115-10', 'DEMO-0001'],
-    'CPF só dígitos' => ['30148211510', 'DEMO-0001'],
-    'CNH' => ['40246600440', 'DEMO-0004'],
-    'CNPJ' => ['12.905.330/0001-30', 'DEMO-0003'],
-    'telefone com DDD' => ['(11) 90000-0001', 'DEMO-0001'],
-    'telefone com +55' => ['+55 21 90000-0002', 'DEMO-0002'],
-    'e-mail' => ['BENTO.DEMO@example.test', 'DEMO-0002'],
-    'ID' => ['demo-0006', 'DEMO-0006'],
+    'CPF formatado' => ['301.482.115-10', 'REG-0001'],
+    'CPF só dígitos' => ['30148211510', 'REG-0001'],
+    'CNH' => ['40246600440', 'REG-0004'],
+    'CNPJ' => ['12.905.330/0001-30', 'REG-0003'],
+    'telefone com DDD' => ['(11) 90000-0001', 'REG-0001'],
+    'telefone com +55' => ['+55 21 90000-0002', 'REG-0002'],
+    'e-mail' => ['BENTO.ROCHA@mail.test', 'REG-0002'],
+    'ID' => ['reg-0006', 'REG-0006'],
 ]);
 
 test('ID inexistente segue para o 404 demonstrativo', function () {
-    $this->get('/buscar?q=DEMO-9999')->assertRedirect('/consultas/DEMO-9999');
-    $this->get('/consultas/DEMO-9999')->assertNotFound();
+    $this->get('/buscar?q=REG-9999')->assertRedirect('/consultas/REG-9999');
+    $this->get('/consultas/REG-9999')->assertNotFound();
 });
 
 test('busca sem resultado mostra a página de resultados vazia', function () {
@@ -64,9 +67,9 @@ test('termo com menos de 2 caracteres volta para a home', function () {
 });
 
 test('dados ocultos não entram no índice de busca', function () {
-    expect(DemoSearchTerm::query()->where('value', 'like', '%cx-demo%')->exists())->toBeFalse();
+    expect(DemoSearchTerm::query()->where('value', 'like', '%prt%')->exists())->toBeFalse();
 
-    $this->get('/buscar?q=CX-DEMO-1001')
+    $this->get('/buscar?q=PRT-1001')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('results', 0));
 });
@@ -77,7 +80,7 @@ test('API de busca retorna os registros e por qual campo foram encontrados', fun
         ->assertJsonPath('demo', true)
         ->assertJsonPath('kind', 'document')
         ->assertJsonPath('meta.total', 1)
-        ->assertJsonPath('data.0.public_id', 'DEMO-0003')
+        ->assertJsonPath('data.0.public_id', 'REG-0003')
         ->assertJsonPath('data.0.matched_by', 'cnpj')
         ->assertJsonPath('data.0.matched_by_label', 'CNPJ');
 

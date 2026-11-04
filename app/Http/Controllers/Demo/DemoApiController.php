@@ -102,7 +102,7 @@ class DemoApiController extends Controller
 
         return response()->json([
             'demo' => true,
-            'message' => 'Plano demo ativado. Nenhum pagamento foi realizado: este é um protótipo.',
+            'message' => 'Plano ativado. Nenhum pagamento foi realizado.',
             'data' => $status,
         ]);
     }
@@ -130,7 +130,7 @@ class DemoApiController extends Controller
 
         return response()->json([
             'demo' => true,
-            'message' => 'Obrigado! Sua avaliação ajuda a demonstrar o fluxo de qualidade dos dados.',
+            'message' => 'Obrigado! Avaliação registrada.',
             'data' => [
                 'consultation_id' => $consultation->id,
                 'feedback' => $consultation->feedback,
@@ -148,7 +148,7 @@ class DemoApiController extends Controller
 
             return response()->json([
                 'demo' => true,
-                'message' => 'Falha ao sincronizar as fontes demo.',
+                'message' => 'Falha ao sincronizar as fontes.',
                 'error' => $exception->getMessage(),
             ], 500);
         }
@@ -194,8 +194,9 @@ class DemoApiController extends Controller
     {
         return response()->json([
             'demo' => true,
+            'disclaimer' => DemoConfig::DISCLAIMER,
             'error' => 'demo_record_not_found',
-            'message' => 'Registro fictício não encontrado. Este ambiente é uma demonstração; use um ID existente no seed.',
+            'message' => 'Registro não encontrado. Use um ID existente.',
             'available_ids' => DemoRecord::query()->orderBy('public_id')->pluck('public_id'),
         ], 404);
     }

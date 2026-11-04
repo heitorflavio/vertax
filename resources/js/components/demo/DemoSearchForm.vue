@@ -44,7 +44,7 @@ function search(value: string = query.value): void {
                 id="demo-search"
                 v-model="query"
                 type="search"
-                placeholder="Ex.: Aurora, 301.482.115-10 ou DEMO-0001"
+                placeholder="Aurora, 301.482.115-10 ou REG-0001"
                 autocomplete="off"
             />
             <Button type="submit">
@@ -57,7 +57,7 @@ function search(value: string = query.value): void {
         v-if="props.examples.length > 0"
         class="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
     >
-        Exemplos:
+        Sugestões:
         <Button
             v-for="example in props.examples"
             :key="example.type"

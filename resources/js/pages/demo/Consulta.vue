@@ -58,7 +58,7 @@ const otherFields = computed(() => {
 
 const copyText = computed(() => {
     const lines = [
-        `ConsultaDEMO — ${props.record.public_id}`,
+        `Consulta — ${props.record.public_id}`,
         '',
         ...props.record.fields
             .filter((field) => field.value !== null)
@@ -109,7 +109,7 @@ async function copyResult(): Promise<void> {
     try {
         await navigator.clipboard.writeText(copyText.value);
         copied.value = true;
-        toast.success('Resultado copiado com o aviso de demonstração.');
+        toast.success('Resultado copiado.');
         window.setTimeout(() => {
             copied.value = false;
         }, 2000);
@@ -153,8 +153,7 @@ async function sendFeedback(helpful: boolean): Promise<void> {
                 </Badge>
             </div>
             <p class="text-sm text-muted-foreground">
-                Registro fictício mesclado de {{ props.record.sources_count }}
-                fontes simuladas.
+                Registro mesclado de {{ props.record.sources_count }} fontes.
             </p>
         </div>
         <div class="flex gap-2">
@@ -178,7 +177,7 @@ async function sendFeedback(helpful: boolean): Promise<void> {
                 <CardHeader>
                     <CardTitle>Dados básicos</CardTitle>
                     <CardDescription>
-                        Nome, CPF e data de nascimento fictícios.
+                        Nome, CPF e data de nascimento.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -221,7 +220,7 @@ async function sendFeedback(helpful: boolean): Promise<void> {
                     <CardTitle>Informações ocultas</CardTitle>
                     <CardDescription>
                         {{ props.record.hidden_fields_count }} campos
-                        adicionais, liberados com um plano demo.
+                        adicionais, liberados com um plano ativo.
                     </CardDescription>
                     <CardAction>
                         <Badge
@@ -262,8 +261,8 @@ async function sendFeedback(helpful: boolean): Promise<void> {
                         <p class="text-sm text-muted-foreground">
                             {{
                                 props.record.hidden_locked
-                                    ? 'Disponível com um plano demo ativo.'
-                                    : 'Seu plano demo libera estes campos.'
+                                    ? 'Disponível com um plano ativo.'
+                                    : 'Seu plano libera estes campos.'
                             }}
                         </p>
                         <Button @click="reveal">

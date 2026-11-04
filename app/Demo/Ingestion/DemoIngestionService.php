@@ -62,6 +62,16 @@ class DemoIngestionService
 
                     $payloadsIngested++;
                 }
+
+                // Remove o que a fonte deixou de devolver (ex.: ID renomeado).
+                // Uma resposta vazia não apaga nada, para uma falha do provedor
+                // não zerar a base.
+                if ($payloads !== []) {
+                    DemoRecordSource::query()
+                        ->where('demo_source_id', $source->id)
+                        ->whereNotIn('public_id', array_column($payloads, 'public_id'))
+                        ->delete();
+                }
             }
 
             $recordsMerged = 0;
@@ -70,6 +80,10 @@ class DemoIngestionService
                 ->distinct()
                 ->orderBy('public_id')
                 ->pluck('public_id');
+
+            // Registros que ficaram sem nenhuma fonte deixam de existir
+            // (consultas e termos de busca saem junto, por cascade).
+            DemoRecord::query()->whereNotIn('public_id', $publicIds)->delete();
 
             foreach ($publicIds as $publicId) {
                 $merged = $this->merger->merge((string) $publicId);

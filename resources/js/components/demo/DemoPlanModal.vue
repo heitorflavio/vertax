@@ -37,14 +37,14 @@ async function activate(): Promise<void> {
 
     try {
         const response = await demoApi.activatePlan(selected.value);
-        toast.success(response.message ?? 'Plano demo ativado.');
+        toast.success(response.message ?? 'Plano ativado.');
         open.value = false;
         emit('activated', selected.value);
     } catch (error) {
         toast.error(
             error instanceof Error
                 ? error.message
-                : 'Não foi possível ativar o plano demo.',
+                : 'Não foi possível ativar o plano.',
         );
     } finally {
         loading.value = false;
@@ -56,10 +56,10 @@ async function activate(): Promise<void> {
     <Dialog v-model:open="open">
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>Ativar plano demo</DialogTitle>
+                <DialogTitle>Ativar plano</DialogTitle>
                 <DialogDescription>
-                    As informações ocultas são liberadas com um plano demo. Não
-                    há pagamento: a ativação vale apenas para esta sessão.
+                    As informações ocultas são liberadas com um plano ativo. A
+                    ativação vale apenas para esta sessão.
                 </DialogDescription>
             </DialogHeader>
 

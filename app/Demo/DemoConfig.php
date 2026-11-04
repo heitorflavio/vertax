@@ -4,11 +4,16 @@ namespace App\Demo;
 
 class DemoConfig
 {
-    public const DISCLAIMER = 'Ambiente 100% demonstrativo. Todos os nomes, CPFs, endereços, contatos e scores são fictícios, sintéticos e inválidos. Nada aqui consulta bases reais ou identifica pessoas.';
+    public const DISCLAIMER = 'Dados fictícios: nomes, documentos, endereços, contatos e scores não correspondem a pessoas reais.';
 
-    public const SHORT_DISCLAIMER = 'Dados 100% fictícios para demonstração de UI/UX.';
+    public const SHORT_DISCLAIMER = 'Dados fictícios';
 
-    public const COPY_NOTICE = 'AVISO: resultado gerado pelo protótipo ConsultaDEMO. Todos os dados são fictícios e sem validade legal.';
+    public const COPY_NOTICE = 'Dados fictícios, sem validade legal.';
+
+    /**
+     * Prefixo dos IDs públicos (REG-0001). A busca usa para reconhecer um ID.
+     */
+    public const PUBLIC_ID_PREFIX = 'REG';
 
     /**
      * Campos canônicos usados na busca, mesclagem e apresentação.
@@ -141,9 +146,9 @@ class DemoConfig
     public static function trustExplanation(string $label): string
     {
         return match ($label) {
-            'Alto' => 'As fontes fictícias concordam na maior parte dos campos e os payloads são recentes.',
-            'Moderado' => 'Há divergências ou lacunas nas fontes fictícias. O resultado é apenas ilustrativo.',
-            default => 'Poucas fontes, dados incompletos ou divergentes. Score demonstrativo baixo.',
+            'Alto' => 'As fontes concordam na maior parte dos campos e os dados são recentes.',
+            'Moderado' => 'Há divergências ou lacunas entre as fontes.',
+            default => 'Poucas fontes, dados incompletos ou divergentes.',
         };
     }
 }

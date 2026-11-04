@@ -8,7 +8,7 @@ O ConsultaDEMO simula um produto de consulta cadastral: busca por nome, CPF, CNP
 
 ## O que está implementado
 
-- Home com busca geral (nome, CPF, CNPJ, CNH, e-mail, telefone ou ID `DEMO-0001` … `DEMO-0006`), últimas buscas da sessão e catálogo de módulos.
+- Home com busca geral (nome, CPF, CNPJ, CNH, e-mail, telefone ou ID `REG-0001` … `REG-0006`), últimas buscas da sessão e catálogo de módulos.
 - Página de resultado com dados básicos, fontes simuladas, score de confiança e bloco **Informações ocultas**.
 - Modal de planos quando não há plano ativo; revelação dos dados ocultos após ativar um plano demo (sem pagamento).
 - Ação **Copiar resultado** incluindo o aviso de que os dados são fictícios.
@@ -54,14 +54,14 @@ php artisan serve
 
 ### IDs fictícios disponíveis
 
-| ID          | Persona                                                  |
-| ----------- | -------------------------------------------------------- |
-| `DEMO-0001` | Cadastro completo em quatro fontes simuladas             |
-| `DEMO-0002` | Três fontes com concordância de localização              |
-| `DEMO-0003` | Quatro fontes com dados complementares                   |
-| `DEMO-0004` | Conflito proposital de UF para demonstrar consistência   |
-| `DEMO-0005` | Cadastro incompleto, menor score de confiança            |
-| `DEMO-0006` | Quatro fontes recentes, usado para demonstrar score alto |
+| ID         | Persona                                                  |
+| ---------- | -------------------------------------------------------- |
+| `REG-0001` | Cadastro completo em quatro fontes simuladas             |
+| `REG-0002` | Três fontes com concordância de localização              |
+| `REG-0003` | Quatro fontes com dados complementares                   |
+| `REG-0004` | Conflito proposital de UF para demonstrar consistência   |
+| `REG-0005` | Cadastro incompleto, menor score de confiança            |
+| `REG-0006` | Quatro fontes recentes, usado para demonstrar score alto |
 
 Qualquer outro ID retorna a página/JSON de 404 demonstrativo.
 
@@ -98,7 +98,7 @@ Exemplos:
 
 ```bash
 curl -s http://localhost:8000/api/demo/registros | jq
-curl -s http://localhost:8000/api/demo/consulta/DEMO-0001 | jq
+curl -s http://localhost:8000/api/demo/consulta/REG-0001 | jq
 curl -s http://localhost:8000/api/demo/consulta/ID-INEXISTENTE | jq
 ```
 
@@ -107,15 +107,16 @@ Resposta de ID inexistente (HTTP 404):
 ```json
 {
     "demo": true,
+    "disclaimer": "Dados fictícios: nomes, documentos, endereços, contatos e scores não correspondem a pessoas reais.",
     "error": "demo_record_not_found",
-    "message": "Registro fictício não encontrado. Este ambiente é uma demonstração; use um ID existente no seed.",
+    "message": "Registro não encontrado. Use um ID existente.",
     "available_ids": [
-        "DEMO-0001",
-        "DEMO-0002",
-        "DEMO-0003",
-        "DEMO-0004",
-        "DEMO-0005",
-        "DEMO-0006"
+        "REG-0001",
+        "REG-0002",
+        "REG-0003",
+        "REG-0004",
+        "REG-0005",
+        "REG-0006"
     ]
 }
 ```
@@ -137,7 +138,7 @@ O código segue as convenções do Laravel (monólito Inertia), com o domínio d
 
 1. `DemoProvider` define o contrato de um provedor terceiro fictício.
 2. `SeedJsonProvider` lê `database/data/demo_seed.json` e simula a resposta de cada fonte.
-3. `DemoIngestionService` grava cada payload bruto em `demo_record_sources` e registra a execução em `demo_ingestion_runs`.
+3. `DemoIngestionService` grava cada payload bruto em `demo_record_sources` e registra a execução em `demo_ingestion_runs`. Payloads que uma fonte deixou de devolver são removidos, e registros sem nenhuma fonte saem da base (com consultas e termos de busca). Uma resposta vazia do provedor não apaga nada.
 4. `DemoMergeService` escolhe o valor de maior confiabilidade por campo, coleta dados `_hidden` e monta o registro canônico em `demo_records`.
 5. `DemoTrustScoreService` avalia o resultado depois da consulta/mesclagem.
 
@@ -152,9 +153,9 @@ php artisan demo:ingest --source=cadastro-civil-demo
 
 | Termo                      | Exemplo                                               | Comportamento                                                           |
 | -------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- |
-| ID                         | `DEMO-0004`                                           | Abre a consulta (ID inexistente cai no 404 demonstrativo)               |
+| ID                         | `REG-0004`                                            | Abre a consulta (ID inexistente cai no 404 demonstrativo)               |
 | CPF, CNPJ, CNH ou telefone | `301.482.115-10`, `12905330000130`, `(11) 90000-0001` | Compara só os dígitos; com um único resultado, abre a consulta          |
-| E-mail                     | `bento.demo@example.test`                             | Igualdade sem diferenciar maiúsculas                                    |
+| E-mail                     | `bento.rocha@mail.test`                               | Igualdade sem diferenciar maiúsculas                                    |
 | Nome                       | `aurora ficticia`                                     | Parcial, sem acento nem maiúsculas; todas as palavras precisam aparecer |
 
 O índice fica em `demo_search_terms` e é reconstruído a cada ingestão. Só campos visíveis são indexados: os dados ocultos do plano nunca são pesquisáveis. Os resultados mostram o CPF mascarado; o CPF completo aparece só na tela da consulta.
@@ -178,6 +179,15 @@ Rótulos: **Alto** (≥ 85), **Moderado** (65–84) e **Baixo** (< 65). O detalh
 - A ativação é registrada em `demo_plan_activations` (sem cobrança).
 - `DemoPlanService::hasHiddenAccess()` decide se `hidden_data` pode ser serializado.
 - As rotas de página e API usam o mesmo serviço, então o gating é idêntico nos dois canais.
+
+### Nomes realistas e aviso discreto
+
+Os valores exibidos (nomes, endereços, fontes, módulos e planos) não usam marcadores como "Demo" ou "Fictício". O que garante que nenhum registro é uma pessoa real:
+
+- CPF, CNH e CNPJ com dígito verificador inválido (há testes cobrindo os três);
+- e-mails no domínio reservado `.test`, que não recebe mensagens.
+
+O aviso de dados fictícios continua, de forma discreta: uma linha no rodapé da sidebar, a última linha do texto copiado e o campo `disclaimer` em todas as respostas da API.
 
 ### Seed JSON comentado
 

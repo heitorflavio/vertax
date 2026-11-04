@@ -93,10 +93,15 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain v-if="user" :items="mainNavItems" />
-            <NavMain label="Consulta demo" :items="demoNavItems" />
+            <NavMain label="Consulta" :items="demoNavItems" />
         </SidebarContent>
 
         <SidebarFooter>
+            <p
+                class="px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden"
+            >
+                {{ page.props.demo.shortDisclaimer }}
+            </p>
             <NavFooter :items="footerNavItems" />
             <NavUser v-if="user" />
             <SidebarMenu v-else>

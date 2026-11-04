@@ -98,7 +98,7 @@ class DemoPlanService
 
         if ($plan === null) {
             throw ValidationException::withMessages([
-                'plan_slug' => 'Plano demo inexistente ou inativo.',
+                'plan_slug' => 'Plano inexistente ou inativo.',
             ]);
         }
 

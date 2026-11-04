@@ -32,12 +32,12 @@ async function request<T>(
     });
 
     const payload = (await response.json().catch(() => ({
-        message: 'Resposta inválida do servidor demo.',
+        message: 'Resposta inválida do servidor.',
     }))) as DemoApiEnvelope<T>;
 
     if (!response.ok) {
         throw new Error(
-            payload.message ?? `Falha na API demo (${response.status}).`,
+            payload.message ?? `Falha na requisição (${response.status}).`,
         );
     }
 
