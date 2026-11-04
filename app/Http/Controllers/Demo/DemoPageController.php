@@ -36,7 +36,6 @@ class DemoPageController extends Controller
         return Inertia::render('demo/Home', [
             'modules' => $this->modules(),
             'recentSearches' => $this->recentSearches($request),
-            'searchExamples' => $this->searchExamples(),
             'initialQuery' => (string) $request->query('q', ''),
         ]);
     }
@@ -73,29 +72,6 @@ class DemoPageController extends Controller
                 $result['matches'],
             ),
         ]);
-    }
-
-    /**
-     * Um exemplo de cada tipo de busca, tirado do próprio seed.
-     *
-     * @return list<array{type: string, value: string}>
-     */
-    private function searchExamples(): array
-    {
-        $records = DemoRecord::query()->orderBy('public_id')->get();
-
-        $candidates = [
-            ['type' => 'Nome', 'value' => Str::before((string) $records->get(0)?->full_name, ' ')],
-            ['type' => 'CPF', 'value' => (string) $records->get(1)?->cpf],
-            ['type' => 'CNPJ', 'value' => (string) $records->whereNotNull('cnpj')->first()?->cnpj],
-            ['type' => 'CNH', 'value' => (string) $records->get(3)?->cnh],
-            ['type' => 'ID', 'value' => (string) $records->last()?->public_id],
-        ];
-
-        return array_values(array_filter(
-            $candidates,
-            fn (array $example): bool => $example['value'] !== '',
-        ));
     }
 
     /**

@@ -70,11 +70,6 @@ export interface DemoRecordSummary {
     url: string;
 }
 
-export interface DemoSearchExample {
-    type: string;
-    value: string;
-}
-
 export interface DemoSearchResult extends DemoRecordSummary {
     matched_by: string;
     matched_by_label: string;

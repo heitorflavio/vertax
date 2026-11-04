@@ -24,11 +24,7 @@ import { demoIcon } from '@/lib/demoIcons';
 import { formatRelative, trustVariant } from '@/lib/demoFormat';
 import { home } from '@/routes';
 import demo from '@/routes/demo';
-import type {
-    DemoModule,
-    DemoRecentSearch,
-    DemoSearchExample,
-} from '@/types/demo';
+import type { DemoModule, DemoRecentSearch } from '@/types/demo';
 
 defineOptions({
     layout: {
@@ -39,7 +35,6 @@ defineOptions({
 const props = defineProps<{
     modules: DemoModule[];
     recentSearches: DemoRecentSearch[];
-    searchExamples: DemoSearchExample[];
     initialQuery: string;
 }>();
 </script>
@@ -57,10 +52,7 @@ const props = defineProps<{
 
     <Card class="max-w-3xl">
         <CardContent>
-            <DemoSearchForm
-                :initial-query="props.initialQuery"
-                :examples="props.searchExamples"
-            />
+            <DemoSearchForm :initial-query="props.initialQuery" />
         </CardContent>
     </Card>
 

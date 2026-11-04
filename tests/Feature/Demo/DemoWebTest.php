@@ -14,8 +14,7 @@ test('página inicial exibe busca, módulos e aviso de demonstração', function
             ->component('demo/Home')
             ->has('modules', 6)
             ->has('recentSearches', 0)
-            ->has('searchExamples', 5)
-            ->where('searchExamples.0', ['type' => 'Nome', 'value' => 'Aurora'])
+            ->missing('searchExamples')
             ->where('demo.disclaimer', fn (string $value) => str_contains($value, 'fictícios'))
         );
 });
