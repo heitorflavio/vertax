@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import {
+    BookOpen,
+    Boxes,
+    CreditCard,
+    Database,
+    FolderGit2,
+    LayoutGrid,
+    LogIn,
+    Search,
+} from '@lucide/vue';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -14,8 +24,12 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, home, login } from '@/routes';
+import demo from '@/routes/demo';
 import type { NavItem } from '@/types';
+
+const page = usePage();
+const user = computed(() => page.props.auth.user);
 
 const mainNavItems: NavItem[] = [
     {
@@ -24,6 +38,30 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
 ];
+
+const demoNavItems = computed<NavItem[]>(() => [
+    {
+        title: 'Buscar',
+        href: home(),
+        icon: Search,
+    },
+    {
+        title: 'Módulos',
+        href: demo.modules(),
+        icon: Boxes,
+    },
+    {
+        title: 'Planos',
+        href: demo.plans(),
+        icon: CreditCard,
+        badge: page.props.demo.plan.active ? 'Ativo' : undefined,
+    },
+    {
+        title: 'Painel',
+        href: demo.panel(),
+        icon: Database,
+    },
+]);
 
 const footerNavItems: NavItem[] = [
     {
@@ -45,7 +83,7 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="home()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -54,12 +92,23 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain v-if="user" :items="mainNavItems" />
+            <NavMain label="Consulta demo" :items="demoNavItems" />
         </SidebarContent>
 
         <SidebarFooter>
             <NavFooter :items="footerNavItems" />
-            <NavUser />
+            <NavUser v-if="user" />
+            <SidebarMenu v-else>
+                <SidebarMenuItem>
+                    <SidebarMenuButton as-child tooltip="Entrar">
+                        <Link :href="login()">
+                            <LogIn />
+                            <span>Entrar</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
         </SidebarFooter>
     </Sidebar>
     <slot />

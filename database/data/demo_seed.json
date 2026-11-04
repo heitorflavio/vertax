@@ -1,0 +1,491 @@
+{
+    "_meta": {
+        "description": "Seed 100% sintético do protótipo ConsultaDEMO. Nenhum nome, CPF, endereço, e-mail ou telefone corresponde a pessoa real.",
+        "disclaimer": "Ambiente de demonstração. Todos os dados são fictícios, gerados para ilustrar fluxo de UI/UX, planos e resultados mockados.",
+        "schema_version": 1,
+        "field_notes": {
+            "cpf": "CPFs completos e inválidos de propósito: os dígitos verificadores não batem, então nenhum deles pertence a uma pessoa real. Não use CPF real neste protótipo.",
+            "cnh": "CNHs fictícias de 11 dígitos com dígito verificador inválido. DEMO-0005 não tem CNH de propósito (campo opcional).",
+            "cnpj": "CNPJs de empresas inventadas, com dígito verificador inválido. Só DEMO-0003 e DEMO-0006 têm vínculo empresarial.",
+            "cpf_display": "A tela de resultado mostra o CPF completo; listagens e a API de registros mostram a versão mascarada (***.NNN.***-NN).",
+            "search": "A busca da home aceita ID, nome, CPF, CNPJ, CNH, e-mail ou telefone. Só campos visíveis entram no índice; dados _hidden nunca são pesquisáveis.",
+            "names": "Todos os nomes contêm marcadores como Fictícia, Demo, Mock, Simulado, Placeholder ou Exemplo.",
+            "hidden": "O bloco _hidden de cada fonte simula um dado premium (fictício) usado no merge e no gating de plano.",
+            "days_ago": "Idade simulada do payload de cada fonte para o cálculo de atualidade do score de confiança."
+        },
+        "sources": [
+            {
+                "slug": "cadastro-civil-demo",
+                "name": "Cadastro Civil DEMO",
+                "category": "registro",
+                "reliability": 92,
+                "description": "Fonte primária fictícia com nome, CPF mascarado, nascimento e filiação. Simula um serviço de terceiro.",
+                "notes": "Maior peso de confiabilidade do protótipo."
+            },
+            {
+                "slug": "contato-sintetico",
+                "name": "Contato Sintético",
+                "category": "contato",
+                "reliability": 76,
+                "description": "Fonte fictícia de e-mail, telefone e cidade. Usada para demonstrar enriquecimento de cadastro.",
+                "notes": "Pode divergir da fonte de localização em alguns registros para exercitar o merge."
+            },
+            {
+                "slug": "localizacao-mock",
+                "name": "Localização Mock",
+                "category": "localizacao",
+                "reliability": 68,
+                "description": "Fonte fictícia de endereço e geocódigo demonstrativo.",
+                "notes": "Peso menor que a fonte de contato para demonstrar resolução de conflito."
+            },
+            {
+                "slug": "credito-ficticio",
+                "name": "Crédito Fictício",
+                "category": "credito",
+                "reliability": 58,
+                "description": "Fonte fictícia de renda presumida e score demonstrativo. Nunca consulta bureaus reais.",
+                "notes": "Contribui apenas com informações ocultas e tem o menor peso."
+            }
+        ],
+        "modules": [
+            {
+                "slug": "localizacao-cadastral-demo",
+                "name": "Localização Cadastral DEMO",
+                "description": "Simula enriquecimento de endereço a partir de fontes fictícias de localização.",
+                "category": "Localização",
+                "icon": "map-pin",
+                "badge": "DEMO",
+                "sort_order": 1
+            },
+            {
+                "slug": "contato-sintetico-demo",
+                "name": "Contato Sintético DEMO",
+                "description": "Mostra e-mails e telefones inventados para demonstrar o fluxo de contato.",
+                "category": "Contato",
+                "icon": "phone",
+                "badge": "DEMO",
+                "sort_order": 2
+            },
+            {
+                "slug": "score-credito-ficticio",
+                "name": "Score de Crédito Fictício",
+                "description": "Score demonstrativo, sem qualquer vínculo com bureau de crédito real.",
+                "category": "Crédito",
+                "icon": "gauge",
+                "badge": "DEMO",
+                "sort_order": 3
+            },
+            {
+                "slug": "vinculos-demo",
+                "name": "Vínculos Societários DEMO",
+                "description": "Exibe empresas inventadas e vínculos simulados para testar a apresentação.",
+                "category": "Empresas",
+                "icon": "network",
+                "badge": "DEMO",
+                "sort_order": 4
+            },
+            {
+                "slug": "historico-consultas-demo",
+                "name": "Histórico de Consultas DEMO",
+                "description": "Linha do tempo fictícia de consultas e avaliações de qualidade.",
+                "category": "Auditoria",
+                "icon": "history",
+                "badge": "DEMO",
+                "sort_order": 5
+            },
+            {
+                "slug": "alerta-fraude-demo",
+                "name": "Alerta de Fraude Simulado",
+                "description": "Alertas 100% inventados para demonstrar estados de risco na interface.",
+                "category": "Risco",
+                "icon": "shield-alert",
+                "badge": "DEMO",
+                "sort_order": 6
+            }
+        ],
+        "plans": [
+            {
+                "slug": "demo-essencial",
+                "name": "Demo Essencial",
+                "description": "Libera o bloco de informações ocultas fictícias e o score de confiança detalhado.",
+                "price_label": "R$ 0,00 (fictício)",
+                "price_cents": 0,
+                "duration_minutes": 60,
+                "grants_hidden": true,
+                "features": [
+                    "Consultas ilimitadas ao seed DEMO",
+                    "Informações ocultas fictícias",
+                    "Score de confiança e fontes",
+                    "Copiar resultado com aviso legal"
+                ],
+                "sort_order": 1
+            },
+            {
+                "slug": "demo-pro",
+                "name": "Demo Pro",
+                "description": "Plano fictício recomendado para demonstrar a experiência completa do protótipo.",
+                "price_label": "R$ 19,90 (fictício)",
+                "price_cents": 1990,
+                "duration_minutes": 60,
+                "grants_hidden": true,
+                "features": [
+                    "Tudo do Demo Essencial",
+                    "Painel de qualidade e mesclagem",
+                    "Avaliação de resultado após consulta",
+                    "Sincronização simulada de fontes"
+                ],
+                "sort_order": 2
+            },
+            {
+                "slug": "demo-max",
+                "name": "Demo Max",
+                "description": "Plano fictício com duração maior para demonstrações guiadas.",
+                "price_label": "R$ 49,90 (fictício)",
+                "price_cents": 4990,
+                "duration_minutes": 120,
+                "grants_hidden": true,
+                "features": [
+                    "Tudo do Demo Pro",
+                    "Sessão de demonstração de 2 horas",
+                    "Acesso ao painel de ingestão",
+                    "Suporte fictício prioritário"
+                ],
+                "sort_order": 3
+            }
+        ]
+    },
+    "records": [
+        {
+            "public_id": "DEMO-0001",
+            "notes": "Persona A: cadastro completo em quatro fontes simuladas.",
+            "sources": [
+                {
+                    "source": "cadastro-civil-demo",
+                    "external_ref": "civil-0001",
+                    "days_ago": 2,
+                    "payload": {
+                        "full_name": "Aurora Fictícia Mendes",
+                        "cpf": "301.482.115-10",
+                        "cnh": "10482300110",
+                        "birth_date": "1990-04-12",
+                        "mother_name": "Celeste Fictícia Mendes",
+                        "_hidden": {
+                            "registro_interno": "CX-DEMO-1001",
+                            "observacao_sigilosa": "Protocolo demonstrativo; não corresponde a pessoa real."
+                        }
+                    }
+                },
+                {
+                    "source": "contato-sintetico",
+                    "external_ref": "ctt-0001",
+                    "days_ago": 1,
+                    "payload": {
+                        "email": "aurora.ficticia@example.test",
+                        "phone": "+55 11 90000-0001",
+                        "city": "Vila Exemplo",
+                        "state": "SP",
+                        "_hidden": {
+                            "email_alternativo": "aurora.alt@example.test"
+                        }
+                    }
+                },
+                {
+                    "source": "localizacao-mock",
+                    "external_ref": "geo-0001",
+                    "days_ago": 3,
+                    "payload": {
+                        "address": "Rua das Simulações, 100",
+                        "city": "Vila Exemplo",
+                        "state": "SP",
+                        "_hidden": {
+                            "geocodigo": "GEO-DEMO-1001"
+                        }
+                    }
+                },
+                {
+                    "source": "credito-ficticio",
+                    "external_ref": "crd-0001",
+                    "days_ago": 5,
+                    "payload": {
+                        "_hidden": {
+                            "renda_presumida": "R$ 0,00 (fictício)",
+                            "score_credito": "000 (demo)"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "public_id": "DEMO-0002",
+            "notes": "Persona B: duas fontes concordam sobre localização.",
+            "sources": [
+                {
+                    "source": "cadastro-civil-demo",
+                    "external_ref": "civil-0002",
+                    "days_ago": 4,
+                    "payload": {
+                        "full_name": "Bento Demo Almeida",
+                        "cpf": "402.713.226-20",
+                        "cnh": "20713400220",
+                        "birth_date": "1985-11-03",
+                        "mother_name": "Dalva Demo Almeida",
+                        "_hidden": {
+                            "registro_interno": "CX-DEMO-1002"
+                        }
+                    }
+                },
+                {
+                    "source": "contato-sintetico",
+                    "external_ref": "ctt-0002",
+                    "days_ago": 2,
+                    "payload": {
+                        "email": "bento.demo@example.test",
+                        "phone": "+55 21 90000-0002",
+                        "city": "Cidade Inventada",
+                        "state": "RJ",
+                        "_hidden": {
+                            "canal_preferido": "E-mail fictício"
+                        }
+                    }
+                },
+                {
+                    "source": "credito-ficticio",
+                    "external_ref": "crd-0002",
+                    "days_ago": 6,
+                    "payload": {
+                        "city": "Cidade Inventada",
+                        "state": "RJ",
+                        "_hidden": {
+                            "renda_presumida": "R$ 1,00 (fictício)",
+                            "score_credito": "001 (demo)"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "public_id": "DEMO-0003",
+            "notes": "Persona C: quatro fontes com dados complementares.",
+            "sources": [
+                {
+                    "source": "cadastro-civil-demo",
+                    "external_ref": "civil-0003",
+                    "days_ago": 1,
+                    "payload": {
+                        "full_name": "Cora Mock Ribeiro",
+                        "cpf": "503.905.337-30",
+                        "cnh": "30905500330",
+                        "birth_date": "1998-07-21",
+                        "mother_name": "Ester Mock Ribeiro",
+                        "_hidden": {
+                            "registro_interno": "CX-DEMO-1003"
+                        }
+                    }
+                },
+                {
+                    "source": "contato-sintetico",
+                    "external_ref": "ctt-0003",
+                    "days_ago": 1,
+                    "payload": {
+                        "email": "cora.mock@example.test",
+                        "phone": "+55 31 90000-0003",
+                        "city": "Bairro Placeholder",
+                        "state": "MG",
+                        "_hidden": {
+                            "email_alternativo": "cora.alt@example.test"
+                        }
+                    }
+                },
+                {
+                    "source": "localizacao-mock",
+                    "external_ref": "geo-0003",
+                    "days_ago": 2,
+                    "payload": {
+                        "address": "Avenida dos Dados, 300",
+                        "city": "Bairro Placeholder",
+                        "state": "MG",
+                        "_hidden": {
+                            "geocodigo": "GEO-DEMO-1003"
+                        }
+                    }
+                },
+                {
+                    "source": "credito-ficticio",
+                    "external_ref": "crd-0003",
+                    "days_ago": 7,
+                    "payload": {
+                        "cnpj": "12.905.330/0001-30",
+                        "_hidden": {
+                            "renda_presumida": "R$ 2,00 (fictício)",
+                            "score_credito": "002 (demo)",
+                            "vinculo_societario": "Empresa Exemplo Ltda. (fictícia)"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "public_id": "DEMO-0004",
+            "notes": "Persona D: conflito proposital de UF entre contato e localização para demonstrar consistência.",
+            "sources": [
+                {
+                    "source": "cadastro-civil-demo",
+                    "external_ref": "civil-0004",
+                    "days_ago": 3,
+                    "payload": {
+                        "full_name": "Davi Simulado Costa",
+                        "cpf": "604.246.448-40",
+                        "cnh": "40246600440",
+                        "birth_date": "1979-02-14",
+                        "mother_name": "Iris Simulado Costa",
+                        "_hidden": {
+                            "registro_interno": "CX-DEMO-1004"
+                        }
+                    }
+                },
+                {
+                    "source": "contato-sintetico",
+                    "external_ref": "ctt-0004",
+                    "days_ago": 2,
+                    "payload": {
+                        "email": "davi.simulado@example.test",
+                        "phone": "+55 41 90000-0004",
+                        "city": "Município Teste",
+                        "state": "PR",
+                        "_hidden": {
+                            "email_alternativo": "davi.alt@example.test"
+                        }
+                    }
+                },
+                {
+                    "source": "localizacao-mock",
+                    "external_ref": "geo-0004",
+                    "days_ago": 9,
+                    "payload": {
+                        "address": "Travessa Fictícia, 400",
+                        "city": "Município Teste",
+                        "state": "SC"
+                    }
+                },
+                {
+                    "source": "credito-ficticio",
+                    "external_ref": "crd-0004",
+                    "days_ago": 8,
+                    "payload": {
+                        "_hidden": {
+                            "renda_presumida": "R$ 3,00 (fictício)",
+                            "score_credito": "003 (demo)"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "public_id": "DEMO-0005",
+            "notes": "Persona E: cadastro incompleto para demonstrar queda de completude e confiança.",
+            "sources": [
+                {
+                    "source": "cadastro-civil-demo",
+                    "external_ref": "civil-0005",
+                    "days_ago": 6,
+                    "payload": {
+                        "full_name": "Eva Placeholder Nunes",
+                        "cpf": "705.368.559-50",
+                        "birth_date": "2001-09-30",
+                        "mother_name": "Joana Placeholder Nunes",
+                        "_hidden": {
+                            "registro_interno": "CX-DEMO-1005",
+                            "observacao_sigilosa": "Registro de exemplo para testes de UI."
+                        }
+                    }
+                },
+                {
+                    "source": "localizacao-mock",
+                    "external_ref": "geo-0005",
+                    "days_ago": 4,
+                    "payload": {
+                        "address": "Alameda Demo, 500",
+                        "city": "Cidade Fictícia",
+                        "state": "RS",
+                        "_hidden": {
+                            "geocodigo": "GEO-DEMO-1005"
+                        }
+                    }
+                },
+                {
+                    "source": "credito-ficticio",
+                    "external_ref": "crd-0005",
+                    "days_ago": 10,
+                    "payload": {
+                        "_hidden": {
+                            "renda_presumida": "R$ 0,00 (fictício)",
+                            "score_credito": "000 (demo)"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "public_id": "DEMO-0006",
+            "notes": "Persona F: quatro fontes recentes, usada para demonstrar score alto.",
+            "sources": [
+                {
+                    "source": "cadastro-civil-demo",
+                    "external_ref": "civil-0006",
+                    "days_ago": 1,
+                    "payload": {
+                        "full_name": "Fábio Exemplo Lima",
+                        "cpf": "806.579.660-60",
+                        "cnh": "60579800660",
+                        "birth_date": "1988-12-05",
+                        "mother_name": "Kátia Exemplo Lima",
+                        "_hidden": {
+                            "registro_interno": "CX-DEMO-1006"
+                        }
+                    }
+                },
+                {
+                    "source": "contato-sintetico",
+                    "external_ref": "ctt-0006",
+                    "days_ago": 1,
+                    "payload": {
+                        "email": "fabio.exemplo@example.test",
+                        "phone": "+55 51 90000-0006",
+                        "city": "Vila Simulação",
+                        "state": "RS",
+                        "_hidden": {
+                            "canal_preferido": "Telefone fictício"
+                        }
+                    }
+                },
+                {
+                    "source": "localizacao-mock",
+                    "external_ref": "geo-0006",
+                    "days_ago": 2,
+                    "payload": {
+                        "address": "Rua do Protótipo, 600",
+                        "city": "Vila Simulação",
+                        "state": "RS",
+                        "_hidden": {
+                            "geocodigo": "GEO-DEMO-1006"
+                        }
+                    }
+                },
+                {
+                    "source": "credito-ficticio",
+                    "external_ref": "crd-0006",
+                    "days_ago": 4,
+                    "payload": {
+                        "cnpj": "16.579.660/0001-60",
+                        "_hidden": {
+                            "renda_presumida": "R$ 4,00 (fictício)",
+                            "score_credito": "004 (demo)",
+                            "alerta_fraude": "Nenhum alerta real (dados sintéticos)",
+                            "vinculo_societario": "Comércio Exemplo ME (fictícia)"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

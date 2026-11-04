@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Demo\DemoConfig;
+use App\Demo\Plans\DemoPlanService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,6 +42,13 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+            ],
+            'demo' => [
+                'plan' => app(DemoPlanService::class)->status($request),
+                'disclaimer' => DemoConfig::DISCLAIMER,
+                'shortDisclaimer' => DemoConfig::SHORT_DISCLAIMER,
+                'copyNotice' => DemoConfig::COPY_NOTICE,
+                'defaultPlanSlug' => DemoConfig::DEFAULT_PLAN_SLUG,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
