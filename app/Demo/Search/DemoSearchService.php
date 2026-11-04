@@ -37,62 +37,84 @@ class DemoSearchService
     }
 
     /**
-     * Detecta o tipo do termo (ID, documento, e-mail ou nome) e procura no índice.
+     * Procura no índice. Com $type (chave de DemoConfig::SEARCH_TYPE_LABELS)
+     * a busca fica restrita àquele campo; sem ele, o tipo é detectado pelo termo.
      *
      * @return array{kind: string, matches: list<array{record: DemoRecord, matched_by: string}>}
      */
-    public function search(string $query, int $limit = 20): array
+    public function search(string $query, ?string $type = null, int $limit = 20): array
     {
         $query = trim($query);
 
-        if (preg_match('/^'.DemoConfig::PUBLIC_ID_PREFIX.'-\d+$/i', $query) === 1) {
-            $record = DemoRecord::query()->publicId($query)->first();
+        return match ($type ?? $this->detectType($query)) {
+            'id' => ['kind' => 'id', 'matches' => $this->idMatches($query)],
+            'email' => ['kind' => 'email', 'matches' => $this->emailMatches($query, $limit)],
+            'document' => ['kind' => 'document', 'matches' => $this->documentMatches($query, ['cpf', 'cnh', 'cnpj', 'phone'], $limit)],
+            'cpf', 'cnh', 'cnpj', 'phone' => ['kind' => 'document', 'matches' => $this->documentMatches($query, [$type], $limit)],
+            default => ['kind' => 'name', 'matches' => $this->nameMatches($query, $limit)],
+        };
+    }
 
-            return [
-                'kind' => 'id',
-                'matches' => $record === null ? [] : [['record' => $record, 'matched_by' => 'id']],
-            ];
-        }
-
-        if (str_contains($query, '@')) {
-            $email = mb_strtolower($query);
-
-            return [
-                'kind' => 'email',
-                'matches' => $this->findTerms(function (Builder $terms) use ($email): void {
-                    $terms->where('type', 'email')->where('value', $email);
-                }, $limit),
-            ];
-        }
-
-        // Só dígitos e pontuação: CPF, CNH, CNPJ ou telefone.
-        if (preg_match('/^[\d\s.\-\/()+]+$/', $query) === 1) {
-            return ['kind' => 'document', 'matches' => $this->documentMatches($query, $limit)];
-        }
-
-        return ['kind' => 'name', 'matches' => $this->nameMatches($query, $limit)];
+    /**
+     * ID (REG-0001), e-mail, documento/telefone (só dígitos e pontuação) ou nome.
+     */
+    private function detectType(string $query): string
+    {
+        return match (true) {
+            preg_match('/^'.DemoConfig::PUBLIC_ID_PREFIX.'-\d+$/i', $query) === 1 => 'id',
+            str_contains($query, '@') => 'email',
+            preg_match('/^[\d\s.\-\/()+]+$/', $query) === 1 => 'document',
+            default => 'name',
+        };
     }
 
     /**
      * @return list<array{record: DemoRecord, matched_by: string}>
      */
-    private function documentMatches(string $query, int $limit): array
+    private function idMatches(string $query): array
+    {
+        $record = DemoRecord::query()->publicId($query)->first();
+
+        return $record === null ? [] : [['record' => $record, 'matched_by' => 'id']];
+    }
+
+    /**
+     * @return list<array{record: DemoRecord, matched_by: string}>
+     */
+    private function emailMatches(string $query, int $limit): array
+    {
+        $email = mb_strtolower($query);
+
+        return $this->findTerms(function (Builder $terms) use ($email): void {
+            $terms->where('type', 'email')->where('value', $email);
+        }, $limit);
+    }
+
+    /**
+     * Compara só os dígitos. Telefone ignora o +55.
+     *
+     * @param  list<string>  $types  subconjunto de cpf, cnh, cnpj e phone
+     * @return list<array{record: DemoRecord, matched_by: string}>
+     */
+    private function documentMatches(string $query, array $types, int $limit): array
     {
         $digits = $this->digits($query);
         $phone = $this->phoneDigits($query);
+        $documentTypes = array_values(array_intersect($types, ['cpf', 'cnh', 'cnpj']));
+        $searchPhone = in_array('phone', $types, true);
 
         if ($digits === '') {
             return [];
         }
 
-        return $this->findTerms(function (Builder $terms) use ($digits, $phone): void {
+        return $this->findTerms(function (Builder $terms) use ($digits, $phone, $documentTypes, $searchPhone): void {
             $terms
-                ->where(function (Builder $terms) use ($digits): void {
-                    $terms->whereIn('type', ['cpf', 'cnh', 'cnpj'])->where('value', $digits);
+                ->where(function (Builder $terms) use ($digits, $documentTypes): void {
+                    $terms->whereIn('type', $documentTypes)->where('value', $digits);
                 })
-                ->orWhere(function (Builder $terms) use ($phone): void {
+                ->when($searchPhone, fn (Builder $terms) => $terms->orWhere(function (Builder $terms) use ($phone): void {
                     $terms->where('type', 'phone')->where('value', $phone);
-                });
+                }));
         }, $limit);
     }
 

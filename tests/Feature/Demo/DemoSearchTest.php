@@ -88,3 +88,63 @@ test('API de busca retorna os registros e por qual campo foram encontrados', fun
         ->assertUnprocessable()
         ->assertJsonValidationErrors('q');
 });
+
+test('com tipo escolhido, a busca procura só naquele campo', function () {
+    // O CPF da Aurora não é CNH de ninguém.
+    $this->get('/buscar?q=301.482.115-10&tipo=cnh')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('demo/Busca')
+            ->where('type', 'cnh')
+            ->where('typeLabel', 'CNH')
+            ->has('results', 0)
+        );
+
+    // Mesmos 11 dígitos: achados como CNH, não como CPF.
+    $this->get('/buscar?q=10482300110&tipo=cnh')->assertRedirect('/consultas/REG-0001');
+    $this->get('/buscar?q=10482300110&tipo=cpf')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('results', 0));
+
+    // Com tipo "nome", um ID é tratado como texto e não abre a consulta.
+    $this->get('/buscar?q=REG-0002&tipo=name')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('results', 0));
+
+    $this->get('/buscar?q=aurora&tipo=name')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('results', 1)
+            ->where('results.0.public_id', 'REG-0001')
+        );
+});
+
+test('tipo desconhecido na URL vira busca em todos os campos', function () {
+    $this->get('/buscar?q=301.482.115-10&tipo=qualquer')->assertRedirect('/consultas/REG-0001');
+
+    $this->get('/?q=aurora&tipo=qualquer')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('initialType', null));
+
+    $this->get('/?q=aurora&tipo=name')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('initialQuery', 'aurora')
+            ->where('initialType', 'name')
+        );
+});
+
+test('API de busca aceita tipo e rejeita tipo inválido', function () {
+    $this->getJson('/api/demo/busca?q=12905330000130&tipo=cnpj')
+        ->assertOk()
+        ->assertJsonPath('type', 'cnpj')
+        ->assertJsonPath('data.0.public_id', 'REG-0003');
+
+    $this->getJson('/api/demo/busca?q=12905330000130&tipo=cpf')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 0);
+
+    $this->getJson('/api/demo/busca?q=aurora&tipo=qualquer')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('tipo');
+});

@@ -36,6 +36,7 @@ const props = defineProps<{
     modules: DemoModule[];
     recentSearches: DemoRecentSearch[];
     initialQuery: string;
+    initialType: string | null;
 }>();
 </script>
 
@@ -52,7 +53,10 @@ const props = defineProps<{
 
     <Card class="max-w-3xl">
         <CardContent>
-            <DemoSearchForm :initial-query="props.initialQuery" />
+            <DemoSearchForm
+                :initial-query="props.initialQuery"
+                :initial-type="props.initialType"
+            />
         </CardContent>
     </Card>
 

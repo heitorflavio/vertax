@@ -72,7 +72,7 @@ Qualquer outro ID retorna a página/JSON de 404 demonstrativo.
 | Método | Rota                    | Descrição                                              |
 | ------ | ----------------------- | ------------------------------------------------------ |
 | GET    | `/`                     | Home com busca, últimas buscas e módulos               |
-| GET    | `/buscar?q=`            | Busca por nome, CPF, CNPJ, CNH, e-mail, telefone ou ID |
+| GET    | `/buscar?q=&tipo=`      | Busca por nome, CPF, CNPJ, CNH, e-mail, telefone ou ID |
 | GET    | `/consultas/{publicId}` | Resultado da consulta fictícia                         |
 | GET    | `/planos`               | Planos demo e ativação                                 |
 | GET    | `/painel`               | Painel de registros, fontes e qualidade                |
@@ -80,17 +80,17 @@ Qualquer outro ID retorna a página/JSON de 404 demonstrativo.
 
 ### API REST
 
-| Método | Rota                                    | Descrição                                      |
-| ------ | --------------------------------------- | ---------------------------------------------- |
-| GET    | `/api/demo/registros`                   | Lista os registros fictícios                   |
-| GET    | `/api/demo/busca?q=`                    | Busca geral; cada resultado traz `matched_by`  |
-| GET    | `/api/demo/consulta/{publicId}`         | Detalhe da consulta (oculta dados sem plano)   |
-| GET    | `/api/demo/status`                      | Status do plano demo na sessão                 |
-| POST   | `/api/demo/plano/ativar`                | Ativa um plano demo, sem pagamento             |
-| POST   | `/api/demo/consulta/{publicId}/avaliar` | Registra feedback da consulta                  |
-| POST   | `/api/demo/sincronizar`                 | Reexecuta a ingestão simulada (throttle 6/min) |
-| GET    | `/api/demo/modulos`                     | Lista módulos DEMO                             |
-| GET    | `/api/demo/planos`                      | Lista planos DEMO                              |
+| Método | Rota                                    | Descrição                                                  |
+| ------ | --------------------------------------- | ---------------------------------------------------------- |
+| GET    | `/api/demo/registros`                   | Lista os registros fictícios                               |
+| GET    | `/api/demo/busca?q=&tipo=`              | Busca geral ou por campo; cada resultado traz `matched_by` |
+| GET    | `/api/demo/consulta/{publicId}`         | Detalhe da consulta (oculta dados sem plano)               |
+| GET    | `/api/demo/status`                      | Status do plano demo na sessão                             |
+| POST   | `/api/demo/plano/ativar`                | Ativa um plano demo, sem pagamento                         |
+| POST   | `/api/demo/consulta/{publicId}/avaliar` | Registra feedback da consulta                              |
+| POST   | `/api/demo/sincronizar`                 | Reexecuta a ingestão simulada (throttle 6/min)             |
+| GET    | `/api/demo/modulos`                     | Lista módulos DEMO                                         |
+| GET    | `/api/demo/planos`                      | Lista planos DEMO                                          |
 
 As rotas `/api/demo/*` ficam no middleware `web` de propósito: o plano é mantido na sessão e a ativação usa cookie + CSRF. Em chamadas de fora do navegador, envie `Accept: application/json` e obtenha o cookie/`XSRF-TOKEN` antes do `POST`.
 
@@ -149,7 +149,9 @@ php artisan demo:ingest --source=cadastro-civil-demo
 
 ### Busca
 
-`DemoSearchService` detecta o tipo do termo digitado na home:
+O formulário tem um select ao lado do campo: **Todos** (padrão), Nome, CPF, CNPJ, CNH, E-mail, Telefone ou ID. Com um tipo escolhido, a busca procura só naquele campo (`tipo=name|cpf|cnpj|cnh|email|phone|id` na URL e na API). Um tipo desconhecido na URL vira "Todos"; na API, retorna 422.
+
+Em **Todos**, `DemoSearchService` detecta o tipo pelo termo:
 
 | Termo                      | Exemplo                                               | Comportamento                                                           |
 | -------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- |

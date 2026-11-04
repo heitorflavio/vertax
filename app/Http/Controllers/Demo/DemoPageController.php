@@ -37,15 +37,18 @@ class DemoPageController extends Controller
             'modules' => $this->modules(),
             'recentSearches' => $this->recentSearches($request),
             'initialQuery' => (string) $request->query('q', ''),
+            'initialType' => $this->searchType($request),
         ]);
     }
 
     /**
-     * Busca geral: ID, nome, CPF, CNPJ, CNH, e-mail ou telefone.
+     * Busca por ID, nome, CPF, CNPJ, CNH, e-mail ou telefone. O parâmetro
+     * "tipo" restringe a um campo; sem ele, o tipo é detectado pelo termo.
      */
     public function search(Request $request, DemoSearchService $search): InertiaResponse|RedirectResponse
     {
         $query = Str::limit(trim((string) $request->query('q', '')), 100, '');
+        $type = $this->searchType($request);
 
         if (mb_strlen($query) < 2) {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'Digite pelo menos 2 caracteres para buscar.']);
@@ -53,7 +56,7 @@ class DemoPageController extends Controller
             return to_route('home');
         }
 
-        $result = $search->search($query);
+        $result = $search->search($query, $type);
 
         // ID vai direto para a consulta; um ID inexistente cai no 404 demonstrativo.
         if ($result['kind'] === 'id') {
@@ -67,11 +70,23 @@ class DemoPageController extends Controller
 
         return Inertia::render('demo/Busca', [
             'query' => $query,
+            'type' => $type,
+            'typeLabel' => $type === null ? null : DemoConfig::SEARCH_TYPE_LABELS[$type],
             'results' => array_map(
                 fn (array $match): array => $this->presenter->searchResult($match['record'], $match['matched_by']),
                 $result['matches'],
             ),
         ]);
+    }
+
+    /**
+     * Tipo de busca vindo da URL; valor desconhecido vira "todos" (null).
+     */
+    private function searchType(Request $request): ?string
+    {
+        $type = $request->query('tipo');
+
+        return is_string($type) && array_key_exists($type, DemoConfig::SEARCH_TYPE_LABELS) ? $type : null;
     }
 
     /**

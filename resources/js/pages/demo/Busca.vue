@@ -34,6 +34,8 @@ defineOptions({
 
 const props = defineProps<{
     query: string;
+    type: string | null;
+    typeLabel: string | null;
     results: DemoSearchResult[];
 }>();
 </script>
@@ -49,13 +51,18 @@ const props = defineProps<{
             {{ props.results.length }}
             {{ props.results.length === 1 ? 'registro' : 'registros' }} para “{{
                 props.query
-            }}”.
+            }}”<template v-if="props.typeLabel">
+                em {{ props.typeLabel }}</template
+            >.
         </p>
     </div>
 
     <Card class="max-w-3xl">
         <CardContent>
-            <DemoSearchForm :initial-query="props.query" />
+            <DemoSearchForm
+                :initial-query="props.query"
+                :initial-type="props.type"
+            />
         </CardContent>
     </Card>
 
