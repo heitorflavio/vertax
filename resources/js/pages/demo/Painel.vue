@@ -21,6 +21,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { usePermissions } from '@/composables/usePermissions';
 import { demoApi } from '@/lib/demoApi';
 import { formatDateTime, trustVariant } from '@/lib/demoFormat';
 import demo from '@/routes/demo';
@@ -45,6 +46,7 @@ const props = defineProps<{
 }>();
 
 const syncing = ref(false);
+const { can } = usePermissions();
 
 const statCards = computed(() => [
     { label: 'Registros', value: props.stats.records },
@@ -103,7 +105,12 @@ async function sync(): Promise<void> {
                 Registros, fontes e última ingestão.
             </p>
         </div>
-        <Button variant="outline" :disabled="syncing" @click="sync">
+        <Button
+            v-if="can('fontes.sincronizar')"
+            variant="outline"
+            :disabled="syncing"
+            @click="sync"
+        >
             <Spinner v-if="syncing" />
             <RefreshCw v-else />
             Sincronizar fontes
@@ -196,6 +203,7 @@ async function sync(): Promise<void> {
                         <TableRow>
                             <TableHead>Fonte</TableHead>
                             <TableHead>Categoria</TableHead>
+                            <TableHead>Busca por</TableHead>
                             <TableHead class="text-right">
                                 Confiabilidade
                             </TableHead>
@@ -213,6 +221,22 @@ async function sync(): Promise<void> {
                             </TableCell>
                             <TableCell class="text-muted-foreground">
                                 {{ source.category }}
+                            </TableCell>
+                            <TableCell>
+                                <div class="flex flex-wrap gap-1">
+                                    <Badge
+                                        v-for="type in source.search_types"
+                                        :key="type"
+                                        variant="outline"
+                                    >
+                                        {{ type }}
+                                    </Badge>
+                                    <span
+                                        v-if="source.search_types.length === 0"
+                                        class="text-muted-foreground"
+                                        >—</span
+                                    >
+                                </div>
                             </TableCell>
                             <TableCell class="text-right tabular-nums">
                                 {{ source.reliability }}

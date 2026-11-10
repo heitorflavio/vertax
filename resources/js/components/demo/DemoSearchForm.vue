@@ -15,15 +15,9 @@ import {
 } from '@/components/ui/select';
 import demo from '@/routes/demo';
 
-// "all" detecta o tipo pelo termo; os demais restringem a busca a um campo.
+// O tipo é obrigatório: a busca vai às fontes que aceitam esse tipo.
 // Os valores batem com DemoConfig::SEARCH_TYPE_LABELS no backend.
 const searchTypes = [
-    {
-        value: 'all',
-        label: 'Todos',
-        placeholder: 'Nome, CPF, CNPJ, CNH, e-mail, telefone ou ID',
-        inputmode: 'text',
-    },
     {
         value: 'name',
         label: 'Nome',
@@ -60,25 +54,25 @@ const searchTypes = [
         placeholder: '(00) 00000-0000',
         inputmode: 'tel',
     },
-    { value: 'id', label: 'ID', placeholder: 'REG-0000', inputmode: 'text' },
 ] as const;
 
 const props = withDefaults(
     defineProps<{
         initialQuery?: string;
         initialType?: string | null;
+        initialBirthDate?: string | null;
     }>(),
     {
         initialQuery: '',
         initialType: null,
+        initialBirthDate: null,
     },
 );
 
 const query = ref(props.initialQuery);
 const type = ref<string>(
-    searchTypes.some((option) => option.value === props.initialType)
-        ? (props.initialType ?? 'all')
-        : 'all',
+    searchTypes.find((option) => option.value === props.initialType)?.value ??
+        'name',
 );
 
 const current = computed(
@@ -86,6 +80,21 @@ const current = computed(
         searchTypes.find((option) => option.value === type.value) ??
         searchTypes[0],
 );
+
+const birthDate = ref(props.initialBirthDate ?? '');
+// A data de nascimento é o filtro da busca por nome (busca composta).
+const acceptsBirthDate = computed(() => type.value === 'name');
+
+// Data local de hoje (AAAA-MM-DD), limite do campo de nascimento.
+const today = (() => {
+    const now = new Date();
+
+    return [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+})();
 
 function search(): void {
     const q = query.value.trim();
@@ -95,11 +104,13 @@ function search(): void {
         return;
     }
 
-    router.visit(
-        demo.search({
-            query: type.value === 'all' ? { q } : { q, tipo: type.value },
-        }),
-    );
+    const params: Record<string, string> = { q, tipo: type.value };
+
+    if (acceptsBirthDate.value && birthDate.value) {
+        params.nascimento = birthDate.value;
+    }
+
+    router.visit(demo.search({ query: params }));
 }
 </script>
 
@@ -130,10 +141,23 @@ function search(): void {
                 autocomplete="off"
                 class="flex-1"
             />
+            <Input
+                v-if="acceptsBirthDate"
+                v-model="birthDate"
+                type="date"
+                :max="today"
+                aria-label="Data de nascimento (opcional)"
+                title="Data de nascimento (opcional)"
+                class="w-full sm:w-44"
+            />
             <Button type="submit">
                 <Search />
                 Buscar
             </Button>
         </div>
+        <p v-if="acceptsBirthDate" class="text-xs text-muted-foreground">
+            Data de nascimento é opcional: junto com o nome, reduz os
+            resultados.
+        </p>
     </form>
 </template>

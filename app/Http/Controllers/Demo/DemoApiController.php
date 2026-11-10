@@ -46,24 +46,27 @@ class DemoApiController extends Controller
     {
         $validated = $request->validate([
             'q' => ['required', 'string', 'min:2', 'max:100'],
-            'tipo' => ['nullable', 'string', Rule::in(array_keys(DemoConfig::SEARCH_TYPE_LABELS))],
+            'tipo' => ['required', 'string', Rule::in(array_keys(DemoConfig::SEARCH_TYPE_LABELS))],
+            'nascimento' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
         ]);
 
-        $type = $validated['tipo'] ?? null;
-        $result = $search->search($validated['q'], $type);
+        $type = $validated['tipo'];
+        $birthDate = $validated['nascimento'] ?? null;
+        $result = $search->search($validated['q'], $type, $birthDate === null ? [] : ['birth_date' => $birthDate]);
 
         return response()->json([
             'demo' => true,
             'disclaimer' => DemoConfig::DISCLAIMER,
             'query' => $validated['q'],
             'type' => $type,
-            'kind' => $result['kind'],
+            'birth_date' => $birthDate,
             'data' => array_map(
-                fn (array $match): array => $this->presenter->searchResult($match['record'], $match['matched_by']),
+                fn (array $match): array => $this->presenter->searchResult($match['record'], $match['found_in']),
                 $result['matches'],
             ),
             'meta' => [
                 'total' => count($result['matches']),
+                'sources' => $result['sources'],
             ],
         ]);
     }

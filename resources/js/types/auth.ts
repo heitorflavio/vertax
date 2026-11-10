@@ -10,8 +10,20 @@ export type User = {
     [key: string]: unknown;
 };
 
+/** Espelha App\Enums\Role. */
+export type Role = 'admin' | 'operador' | 'cliente';
+
+/** Espelha App\Enums\Permission. */
+export type Permission =
+    | 'consultas.realizar'
+    | 'painel.visualizar'
+    | 'fontes.sincronizar'
+    | 'fontes.gerenciar';
+
 export type Auth = {
     user: User;
+    roles: Role[];
+    permissions: Permission[];
 };
 
 export type Passkey = {

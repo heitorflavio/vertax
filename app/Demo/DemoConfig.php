@@ -11,11 +11,6 @@ class DemoConfig
     public const COPY_NOTICE = 'Dados fictícios, sem validade legal.';
 
     /**
-     * Prefixo dos IDs públicos (REG-0001). A busca usa para reconhecer um ID.
-     */
-    public const PUBLIC_ID_PREFIX = 'REG';
-
-    /**
      * Campos canônicos usados na busca, mesclagem e apresentação.
      *
      * @var array<string, string>
@@ -64,18 +59,32 @@ class DemoConfig
     ];
 
     /**
-     * Como cada termo de busca foi encontrado (exibido nos resultados).
+     * Tipos de busca (o select do formulário, obrigatório) e seus rótulos.
      *
      * @var array<string, string>
      */
     public const SEARCH_TYPE_LABELS = [
-        'id' => 'ID',
         'name' => 'Nome',
         'cpf' => 'CPF',
         'cnpj' => 'CNPJ',
         'cnh' => 'CNH',
         'email' => 'E-mail',
         'phone' => 'Telefone',
+    ];
+
+    /**
+     * Campo do payload de uma fonte que cada tipo de busca consulta. São os
+     * valores aceitos em search_types de uma fonte.
+     *
+     * @var array<string, string>
+     */
+    public const SEARCH_TYPE_FIELDS = [
+        'name' => 'full_name',
+        'cpf' => 'cpf',
+        'cnh' => 'cnh',
+        'cnpj' => 'cnpj',
+        'email' => 'email',
+        'phone' => 'phone',
     ];
 
     /**

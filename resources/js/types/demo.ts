@@ -70,9 +70,23 @@ export interface DemoRecordSummary {
     url: string;
 }
 
+export interface DemoFoundIn {
+    slug: string;
+    name: string;
+}
+
 export interface DemoSearchResult extends DemoRecordSummary {
-    matched_by: string;
-    matched_by_label: string;
+    /** Bases que devolveram o registro nesta busca. */
+    found_in: DemoFoundIn[];
+}
+
+/** Uma base consultada pela busca. */
+export interface DemoSearchedSource {
+    slug: string;
+    name: string;
+    status: 'ok' | 'error';
+    hits: number;
+    duration_ms: number;
 }
 
 export interface DemoRecentSearch {
@@ -150,6 +164,62 @@ export interface DemoPanelSource {
     category: string;
     description: string | null;
     reliability: number;
+    /** Tipos de busca aceitos, já traduzidos (Nome, CPF...). */
+    search_types: string[];
     is_active: boolean;
     payloads: number;
+}
+
+export interface DemoSourceListItem {
+    slug: string;
+    name: string;
+    category: string;
+    description: string | null;
+    reliability: number;
+    search_types: string[];
+    is_active: boolean;
+    has_api: boolean;
+    payloads: number;
+}
+
+export interface DemoApiConfigAuth {
+    type: 'none' | 'bearer' | 'api_key' | 'basic';
+    token?: string;
+    header?: string;
+    key?: string;
+    username?: string;
+    password?: string;
+}
+
+export interface DemoApiConfigEndpoint {
+    method?: 'GET' | 'POST';
+    path?: string;
+    payload_root?: string;
+    id_field?: string;
+    query_param?: string;
+    type_param?: string;
+}
+
+export interface DemoApiConfig {
+    base_url: string;
+    timeout?: number;
+    id_prefix?: string;
+    auth?: DemoApiConfigAuth;
+    endpoints?: {
+        fetch?: DemoApiConfigEndpoint;
+        search?: DemoApiConfigEndpoint;
+    };
+    field_map?: Record<string, string>;
+}
+
+export interface DemoSourceForm {
+    slug: string;
+    name: string;
+    category: string;
+    description: string | null;
+    reliability: number;
+    search_types: string[];
+    is_active: boolean;
+    notes: string | null;
+    api_config: DemoApiConfig | null;
 }

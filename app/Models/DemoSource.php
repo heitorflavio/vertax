@@ -13,6 +13,8 @@ use Illuminate\Support\Carbon;
  * @property string $category
  * @property string|null $description
  * @property int $reliability
+ * @property list<string>|null $search_types
+ * @property array<string, mixed>|null $api_config
  * @property bool $is_active
  * @property string|null $notes
  * @property int $record_sources_count
@@ -27,6 +29,8 @@ class DemoSource extends Model
         'category',
         'description',
         'reliability',
+        'search_types',
+        'api_config',
         'is_active',
         'notes',
     ];
@@ -36,7 +40,17 @@ class DemoSource extends Model
         return [
             'is_active' => 'boolean',
             'reliability' => 'integer',
+            'search_types' => 'array',
+            'api_config' => 'array',
         ];
+    }
+
+    /**
+     * Aceita buscar por este tipo (chave de DemoConfig::SEARCH_TYPE_FIELDS)?
+     */
+    public function supportsSearch(string $type): bool
+    {
+        return in_array($type, $this->search_types ?? [], true);
     }
 
     /** @return HasMany<DemoRecordSource, $this> */

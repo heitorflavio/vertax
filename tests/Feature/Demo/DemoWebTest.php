@@ -1,10 +1,12 @@
 <?php
 
+use App\Enums\Role;
 use Database\Seeders\DemoSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->seed(DemoSeeder::class);
+    $this->actingAs(userWithRole(Role::Customer));
 });
 
 test('página inicial exibe busca, módulos e aviso de demonstração', function () {
@@ -95,7 +97,8 @@ test('páginas de planos, painel e módulos respondem', function () {
             ->has('plans', 3)
         );
 
-    $this->get('/painel')
+    $this->actingAs(userWithRole(Role::Operator))
+        ->get('/painel')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('demo/Painel')

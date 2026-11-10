@@ -4,11 +4,11 @@ namespace App\Demo\Ingestion;
 
 use App\Demo\Merge\DemoMergeService;
 use App\Demo\Providers\DemoProviderRegistry;
-use App\Demo\Search\DemoSearchService;
 use App\Models\DemoIngestionRun;
 use App\Models\DemoRecord;
 use App\Models\DemoRecordSource;
 use App\Models\DemoSource;
+use Carbon\CarbonInterface;
 use Throwable;
 
 class DemoIngestionService
@@ -16,7 +16,6 @@ class DemoIngestionService
     public function __construct(
         private readonly DemoProviderRegistry $providers,
         private readonly DemoMergeService $merger,
-        private readonly DemoSearchService $search,
     ) {}
 
     /**
@@ -47,19 +46,7 @@ class DemoIngestionService
                 $payloads = $provider->fetch();
 
                 foreach ($payloads as $payload) {
-                    DemoRecordSource::updateOrCreate(
-                        [
-                            'public_id' => $payload['public_id'],
-                            'demo_source_id' => $source->id,
-                        ],
-                        [
-                            'external_ref' => $payload['external_ref'],
-                            'payload' => $payload['payload'],
-                            'reliability_score' => $source->reliability,
-                            'fetched_at' => $payload['fetched_at'],
-                        ],
-                    );
-
+                    $this->store($source, $payload);
                     $payloadsIngested++;
                 }
 
@@ -74,46 +61,18 @@ class DemoIngestionService
                 }
             }
 
-            $recordsMerged = 0;
-
             $publicIds = DemoRecordSource::query()
                 ->distinct()
                 ->orderBy('public_id')
-                ->pluck('public_id');
+                ->pluck('public_id')
+                ->map(fn (mixed $publicId): string => (string) $publicId)
+                ->all();
 
             // Registros que ficaram sem nenhuma fonte deixam de existir
-            // (consultas e termos de busca saem junto, por cascade).
+            // (consultas saem junto, por cascade).
             DemoRecord::query()->whereNotIn('public_id', $publicIds)->delete();
 
-            foreach ($publicIds as $publicId) {
-                $merged = $this->merger->merge((string) $publicId);
-
-                $record = DemoRecord::updateOrCreate(
-                    ['public_id' => $publicId],
-                    [
-                        ...$merged['fields'],
-                        'hidden_data' => $merged['hidden_data'],
-                        'trust_score' => $merged['trust_score'],
-                        'trust_label' => $merged['trust_label'],
-                        'trust_breakdown' => $merged['trust_breakdown'],
-                        'sources_count' => $merged['sources_count'],
-                    ],
-                );
-
-                $this->search->index($record);
-
-                DemoRecordSource::query()
-                    ->where('public_id', $publicId)
-                    ->get()
-                    ->each(function (DemoRecordSource $row) use ($record, $merged): void {
-                        $row->update([
-                            'demo_record_id' => $record->id,
-                            'contributed_fields' => $merged['contributions'][$row->id] ?? [],
-                        ]);
-                    });
-
-                $recordsMerged++;
-            }
+            $recordsMerged = count($this->mergeRecords($publicIds));
 
             $finishedAt = now();
 
@@ -143,5 +102,69 @@ class DemoIngestionService
 
             throw $exception;
         }
+    }
+
+    /**
+     * Grava (ou atualiza) o payload bruto que uma fonte devolveu para um
+     * registro. Usado pela ingestão completa e pela busca nas fontes.
+     *
+     * @param  array{public_id: string, external_ref: string|null, fetched_at: CarbonInterface, payload: array<string, mixed>}  $payload
+     */
+    public function store(DemoSource $source, array $payload): void
+    {
+        DemoRecordSource::updateOrCreate(
+            [
+                'public_id' => $payload['public_id'],
+                'demo_source_id' => $source->id,
+            ],
+            [
+                'external_ref' => $payload['external_ref'],
+                'payload' => $payload['payload'],
+                'reliability_score' => $source->reliability,
+                'fetched_at' => $payload['fetched_at'],
+            ],
+        );
+    }
+
+    /**
+     * Mescla os payloads gravados de cada ID num registro canônico, com score
+     * de confiança e os campos que cada fonte forneceu.
+     *
+     * @param  array<string>  $publicIds
+     * @return array<string, DemoRecord> registros por public_id
+     */
+    public function mergeRecords(array $publicIds): array
+    {
+        $records = [];
+
+        foreach ($publicIds as $publicId) {
+            $merged = $this->merger->merge($publicId);
+
+            $record = DemoRecord::updateOrCreate(
+                ['public_id' => $publicId],
+                [
+                    ...$merged['fields'],
+                    'hidden_data' => $merged['hidden_data'],
+                    'trust_score' => $merged['trust_score'],
+                    'trust_label' => $merged['trust_label'],
+                    'trust_breakdown' => $merged['trust_breakdown'],
+                    'sources_count' => $merged['sources_count'],
+                ],
+            );
+
+            DemoRecordSource::query()
+                ->where('public_id', $publicId)
+                ->get()
+                ->each(function (DemoRecordSource $row) use ($record, $merged): void {
+                    $row->update([
+                        'demo_record_id' => $record->id,
+                        'contributed_fields' => $merged['contributions'][$row->id] ?? [],
+                    ]);
+                });
+
+            $records[$publicId] = $record;
+        }
+
+        return $records;
     }
 }

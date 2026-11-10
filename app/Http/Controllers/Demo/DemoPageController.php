@@ -6,6 +6,7 @@ use App\Demo\Consultation\DemoConsultationService;
 use App\Demo\DemoConfig;
 use App\Demo\DemoPresenter;
 use App\Demo\Plans\DemoPlanService;
+use App\Demo\Search\DemoSearchNormalizer;
 use App\Demo\Search\DemoSearchService;
 use App\Http\Controllers\Controller;
 use App\Models\DemoConsultation;
@@ -18,6 +19,7 @@ use App\Models\DemoSource;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -29,6 +31,7 @@ class DemoPageController extends Controller
         private readonly DemoPlanService $plans,
         private readonly DemoPresenter $presenter,
         private readonly DemoConsultationService $consultations,
+        private readonly DemoSearchNormalizer $normalizer,
     ) {}
 
     public function home(Request $request): InertiaResponse
@@ -38,17 +41,20 @@ class DemoPageController extends Controller
             'recentSearches' => $this->recentSearches($request),
             'initialQuery' => (string) $request->query('q', ''),
             'initialType' => $this->searchType($request),
+            'initialBirthDate' => $this->birthDate($request),
         ]);
     }
 
     /**
-     * Busca por ID, nome, CPF, CNPJ, CNH, e-mail ou telefone. O parâmetro
-     * "tipo" restringe a um campo; sem ele, o tipo é detectado pelo termo.
+     * Busca por nome, CPF, CNPJ, CNH, e-mail ou telefone. "tipo" é
+     * obrigatório. "nascimento" (AAAA-MM-DD) torna a busca composta: só ficam
+     * os registros com essa data de nascimento.
      */
     public function search(Request $request, DemoSearchService $search): InertiaResponse|RedirectResponse
     {
         $query = Str::limit(trim((string) $request->query('q', '')), 100, '');
         $type = $this->searchType($request);
+        $birthDate = $this->birthDate($request);
 
         if (mb_strlen($query) < 2) {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'Digite pelo menos 2 caracteres para buscar.']);
@@ -56,37 +62,58 @@ class DemoPageController extends Controller
             return to_route('home');
         }
 
-        $result = $search->search($query, $type);
+        if ($type === null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'Escolha o tipo de busca.']);
 
-        // ID vai direto para a consulta; um ID inexistente cai no 404 demonstrativo.
-        if ($result['kind'] === 'id') {
-            return to_route('demo.show', ['publicId' => mb_strtoupper($query)]);
+            return to_route('home');
         }
 
+        if ($birthDate === null && trim((string) $request->query('nascimento', '')) !== '') {
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'Data de nascimento inválida.']);
+
+            return to_route('home');
+        }
+
+        $result = $search->search($query, $type, $birthDate === null ? [] : ['birth_date' => $birthDate]);
+
         // Documento, e-mail ou telefone com um único registro: abre a consulta.
-        if ($result['kind'] !== 'name' && count($result['matches']) === 1) {
+        if ($type !== 'name' && count($result['matches']) === 1) {
             return to_route('demo.show', ['publicId' => $result['matches'][0]['record']->public_id]);
         }
 
         return Inertia::render('demo/Busca', [
             'query' => $query,
             'type' => $type,
-            'typeLabel' => $type === null ? null : DemoConfig::SEARCH_TYPE_LABELS[$type],
+            'typeLabel' => DemoConfig::SEARCH_TYPE_LABELS[$type],
+            'birthDate' => $birthDate,
+            'birthDateFormatted' => $birthDate === null ? null : Carbon::parse($birthDate)->format('d/m/Y'),
             'results' => array_map(
-                fn (array $match): array => $this->presenter->searchResult($match['record'], $match['matched_by']),
+                fn (array $match): array => $this->presenter->searchResult($match['record'], $match['found_in']),
                 $result['matches'],
             ),
+            'searchedSources' => $result['sources'],
         ]);
     }
 
     /**
-     * Tipo de busca vindo da URL; valor desconhecido vira "todos" (null).
+     * Tipo de busca vindo da URL; ausente ou desconhecido vira null.
      */
     private function searchType(Request $request): ?string
     {
         $type = $request->query('tipo');
 
         return is_string($type) && array_key_exists($type, DemoConfig::SEARCH_TYPE_LABELS) ? $type : null;
+    }
+
+    /**
+     * Data de nascimento da busca composta, em Y-m-d. Vazia, inválida ou no
+     * futuro vira null.
+     */
+    private function birthDate(Request $request): ?string
+    {
+        $birthDate = $this->normalizer->date($request->query('nascimento'));
+
+        return $birthDate !== null && $birthDate <= today()->format('Y-m-d') ? $birthDate : null;
     }
 
     /**
@@ -181,6 +208,10 @@ class DemoPageController extends Controller
                     'category' => $source->category,
                     'description' => $source->description,
                     'reliability' => $source->reliability,
+                    'search_types' => array_map(
+                        fn (string $type): string => DemoConfig::SEARCH_TYPE_LABELS[$type] ?? $type,
+                        $source->search_types ?? [],
+                    ),
                     'is_active' => $source->is_active,
                     'payloads' => $source->record_sources_count,
                 ]),

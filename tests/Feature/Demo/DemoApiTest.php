@@ -1,13 +1,17 @@
 <?php
 
+use App\Enums\Role;
 use App\Models\DemoRecord;
 use Database\Seeders\DemoSeeder;
 
 beforeEach(function () {
     $this->seed(DemoSeeder::class);
+    $this->actingAs(userWithRole(Role::Customer));
 });
 
 test('lista os registros fictícios disponíveis', function () {
+    $this->actingAs(userWithRole(Role::Operator));
+
     $response = $this->getJson('/api/demo/registros');
 
     $response
@@ -143,6 +147,8 @@ test('registro com menor completude recebe score menor que um registro completo'
 });
 
 test('consulta exibe o CPF fictício completo e a listagem mantém o CPF mascarado', function () {
+    $this->actingAs(userWithRole(Role::Operator));
+
     $this->getJson('/api/demo/consulta/REG-0001')
         ->assertOk()
         ->assertJsonPath('data.cpf', '301.482.115-10')

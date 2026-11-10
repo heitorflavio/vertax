@@ -24,6 +24,7 @@ class DemoSeeder extends Seeder
                     'category' => $source['category'],
                     'description' => $source['description'] ?? null,
                     'reliability' => $source['reliability'],
+                    'search_types' => $source['search_types'] ?? [],
                     'is_active' => true,
                     'notes' => $source['notes'] ?? null,
                 ],

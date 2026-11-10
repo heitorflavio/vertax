@@ -29,16 +29,17 @@ class DemoPresenter
     }
 
     /**
-     * Resultado de busca: resumo (CPF mascarado) + campo que casou com o termo.
+     * Resultado de busca: resumo (CPF mascarado) e as fontes que encontraram
+     * o registro.
      *
+     * @param  list<array{slug: string, name: string}>  $foundIn
      * @return array<string, mixed>
      */
-    public function searchResult(DemoRecord $record, string $matchedBy): array
+    public function searchResult(DemoRecord $record, array $foundIn): array
     {
         return [
             ...$this->summary($record),
-            'matched_by' => $matchedBy,
-            'matched_by_label' => DemoConfig::SEARCH_TYPE_LABELS[$matchedBy] ?? $matchedBy,
+            'found_in' => $foundIn,
         ];
     }
 

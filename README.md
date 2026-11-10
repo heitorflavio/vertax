@@ -4,11 +4,11 @@
 >
 > Este projeto é um **protótipo de demonstração**. Todos os nomes, CPFs, datas, endereços, e-mails, telefones, empresas, scores e demais informações são **fictícios, sintéticos, inválidos e sem qualquer validade legal**. Nada aqui consulta bases reais, bureaus de crédito, órgãos públicos ou identifica pessoas. Os CPFs são inválidos de propósito (dígito verificador errado): aparecem completos na tela de resultado e mascarados nas listagens.
 
-O ConsultaDEMO simula um produto de consulta cadastral: busca por nome, CPF, CNPJ, CNH, e-mail, telefone ou ID fictício, resultado mockado, bloco de informações ocultas com gating de plano, catálogo de módulos marcados como **DEMO**, painel de qualidade e uma API REST demonstrativa.
+O ConsultaDEMO simula um produto de consulta cadastral: busca por nome, CPF, CNPJ, CNH, e-mail ou telefone, resultado mockado, bloco de informações ocultas com gating de plano, catálogo de módulos marcados como **DEMO**, painel de qualidade e uma API REST demonstrativa.
 
 ## O que está implementado
 
-- Home com busca geral (nome, CPF, CNPJ, CNH, e-mail, telefone ou ID `REG-0001` … `REG-0006`), últimas buscas da sessão e catálogo de módulos.
+- Home com busca por tipo (nome, CPF, CNPJ, CNH, e-mail ou telefone, com nome + data de nascimento opcional), últimas buscas da sessão e catálogo de módulos.
 - Página de resultado com dados básicos, fontes simuladas, score de confiança e bloco **Informações ocultas**.
 - Modal de planos quando não há plano ativo; revelação dos dados ocultos após ativar um plano demo (sem pagamento).
 - Ação **Copiar resultado** incluindo o aviso de que os dados são fictícios.
@@ -45,6 +45,13 @@ Acesse `http://localhost:8000`.
 
 `php artisan migrate --seed` também funciona: o `DatabaseSeeder` chama o `DemoSeeder`. O seed é idempotente para metadados (usa `updateOrCreate`) e reconstruído via ingestão a cada execução.
 
+Buscar e consultar exigem login. O `DatabaseSeeder` cria `test@example.com` (senha `password`) como **admin**. Quem se cadastra em `/register` entra como **cliente**. Para trocar o papel de alguém:
+
+```bash
+php artisan user:role pessoa@mail.test admin     # admin, operador ou cliente
+php artisan user:role pessoa@mail.test           # mostra o papel atual
+```
+
 Para desenvolvimento com hot reload:
 
 ```bash
@@ -69,40 +76,41 @@ Qualquer outro ID retorna a página/JSON de 404 demonstrativo.
 
 ### Páginas web (Inertia)
 
-| Método | Rota                    | Descrição                                              |
-| ------ | ----------------------- | ------------------------------------------------------ |
-| GET    | `/`                     | Home com busca, últimas buscas e módulos               |
-| GET    | `/buscar?q=&tipo=`      | Busca por nome, CPF, CNPJ, CNH, e-mail, telefone ou ID |
-| GET    | `/consultas/{publicId}` | Resultado da consulta fictícia                         |
-| GET    | `/planos`               | Planos demo e ativação                                 |
-| GET    | `/painel`               | Painel de registros, fontes e qualidade                |
-| GET    | `/modulos`              | Catálogo de módulos DEMO                               |
+| Método | Rota                           | Descrição                                          | Acesso               |
+| ------ | ------------------------------ | -------------------------------------------------- | -------------------- |
+| GET    | `/`                            | Home com busca, últimas buscas e módulos           | `consultas.realizar` |
+| GET    | `/buscar?q=&tipo=&nascimento=` | Busca por nome, CPF, CNPJ, CNH, e-mail ou telefone | `consultas.realizar` |
+| GET    | `/consultas/{publicId}`        | Resultado da consulta fictícia                     | `consultas.realizar` |
+| GET    | `/planos`                      | Planos demo e ativação                             | público              |
+| GET    | `/painel`                      | Painel de registros, fontes e qualidade            | `painel.visualizar`  |
+| GET    | `/modulos`                     | Catálogo de módulos DEMO                           | público              |
+
+Sem login, as rotas protegidas mandam para `/login`. Logado sem a permissão, retornam 403.
 
 ### API REST
 
-| Método | Rota                                    | Descrição                                                  |
-| ------ | --------------------------------------- | ---------------------------------------------------------- |
-| GET    | `/api/demo/registros`                   | Lista os registros fictícios                               |
-| GET    | `/api/demo/busca?q=&tipo=`              | Busca geral ou por campo; cada resultado traz `matched_by` |
-| GET    | `/api/demo/consulta/{publicId}`         | Detalhe da consulta (oculta dados sem plano)               |
-| GET    | `/api/demo/status`                      | Status do plano demo na sessão                             |
-| POST   | `/api/demo/plano/ativar`                | Ativa um plano demo, sem pagamento                         |
-| POST   | `/api/demo/consulta/{publicId}/avaliar` | Registra feedback da consulta                              |
-| POST   | `/api/demo/sincronizar`                 | Reexecuta a ingestão simulada (throttle 6/min)             |
-| GET    | `/api/demo/modulos`                     | Lista módulos DEMO                                         |
-| GET    | `/api/demo/planos`                      | Lista planos DEMO                                          |
+| Método | Rota                                    | Descrição                                               | Acesso               |
+| ------ | --------------------------------------- | ------------------------------------------------------- | -------------------- |
+| GET    | `/api/demo/registros`                   | Lista os registros fictícios                            | `painel.visualizar`  |
+| GET    | `/api/demo/busca?q=&tipo=&nascimento=`  | Busca nas fontes compatíveis; resultados com `found_in` | `consultas.realizar` |
+| GET    | `/api/demo/consulta/{publicId}`         | Detalhe da consulta (oculta dados sem plano)            | `consultas.realizar` |
+| GET    | `/api/demo/status`                      | Status do plano demo na sessão                          | público              |
+| POST   | `/api/demo/plano/ativar`                | Ativa um plano demo, sem pagamento                      | público              |
+| POST   | `/api/demo/consulta/{publicId}/avaliar` | Registra feedback da consulta                           | `consultas.realizar` |
+| POST   | `/api/demo/sincronizar`                 | Reexecuta a ingestão simulada (throttle 6/min)          | `fontes.sincronizar` |
+| GET    | `/api/demo/modulos`                     | Lista módulos DEMO                                      | público              |
+| GET    | `/api/demo/planos`                      | Lista planos DEMO                                       | público              |
 
-As rotas `/api/demo/*` ficam no middleware `web` de propósito: o plano é mantido na sessão e a ativação usa cookie + CSRF. Em chamadas de fora do navegador, envie `Accept: application/json` e obtenha o cookie/`XSRF-TOKEN` antes do `POST`.
+As rotas `/api/demo/*` ficam no middleware `web` de propósito: o plano é mantido na sessão e a ativação usa cookie + CSRF. Em chamadas de fora do navegador, envie `Accept: application/json` e obtenha o cookie/`XSRF-TOKEN` antes do `POST`. As rotas protegidas usam a mesma sessão do login: sem ela, respondem 401; sem a permissão, 403.
 
-Exemplos:
+Exemplos (rotas públicas):
 
 ```bash
-curl -s http://localhost:8000/api/demo/registros | jq
-curl -s http://localhost:8000/api/demo/consulta/REG-0001 | jq
-curl -s http://localhost:8000/api/demo/consulta/ID-INEXISTENTE | jq
+curl -s http://localhost:8000/api/demo/modulos | jq
+curl -s http://localhost:8000/api/demo/planos | jq
 ```
 
-Resposta de ID inexistente (HTTP 404):
+Resposta de `/api/demo/consulta/{publicId}` com ID inexistente (HTTP 404, logado):
 
 ```json
 {
@@ -137,8 +145,8 @@ O código segue as convenções do Laravel (monólito Inertia), com o domínio d
 ### Ingestão multi-fonte
 
 1. `DemoProvider` define o contrato de um provedor terceiro fictício.
-2. `SeedJsonProvider` lê `database/data/demo_seed.json` e simula a resposta de cada fonte.
-3. `DemoIngestionService` grava cada payload bruto em `demo_record_sources` e registra a execução em `demo_ingestion_runs`. Payloads que uma fonte deixou de devolver são removidos, e registros sem nenhuma fonte saem da base (com consultas e termos de busca). Uma resposta vazia do provedor não apaga nada.
+2. `SeedJsonProvider` lê `database/data/demo_seed.json` e simula a resposta de cada fonte: `fetch()` devolve tudo (ingestão) e `search()` responde a uma consulta (busca).
+3. `DemoIngestionService` grava cada payload bruto em `demo_record_sources` e registra a execução em `demo_ingestion_runs`. Payloads que uma fonte deixou de devolver são removidos, e registros sem nenhuma fonte saem da base (com as consultas). Uma resposta vazia do provedor não apaga nada.
 4. `DemoMergeService` escolhe o valor de maior confiabilidade por campo, coleta dados `_hidden` e monta o registro canônico em `demo_records`.
 5. `DemoTrustScoreService` avalia o resultado depois da consulta/mesclagem.
 
@@ -149,18 +157,44 @@ php artisan demo:ingest --source=cadastro-civil-demo
 
 ### Busca
 
-O formulário tem um select ao lado do campo: **Todos** (padrão), Nome, CPF, CNPJ, CNH, E-mail, Telefone ou ID. Com um tipo escolhido, a busca procura só naquele campo (`tipo=name|cpf|cnpj|cnh|email|phone|id` na URL e na API). Um tipo desconhecido na URL vira "Todos"; na API, retorna 422.
+A busca vai a **todas as fontes compatíveis**, no momento da busca. Cada fonte declara em `search_types` por quais dados aceita ser consultada:
 
-Em **Todos**, `DemoSearchService` detecta o tipo pelo termo:
+| Fonte          | Nome | CPF | CNH | CNPJ | E-mail | Telefone |
+| -------------- | :--: | :-: | :-: | :--: | :----: | :------: |
+| Cadastro Civil |  ✓   |  ✓  |  ✓  |      |        |          |
+| Contatos       |  ✓   |  ✓  |     |      |   ✓    |    ✓     |
+| Localização    |  ✓   |  ✓  |     |      |        |          |
+| Crédito        |      |  ✓  |     |  ✓   |        |          |
 
-| Termo                      | Exemplo                                               | Comportamento                                                           |
+Buscar um nome consulta Cadastro Civil, Contatos e Localização. Buscar um CPF consulta as quatro. Para cada fonte ativa compatível, `DemoSearchService`:
+
+1. chama `search(tipo, termo)` do provedor da fonte;
+2. grava o que a fonte devolveu em `demo_record_sources`, como na ingestão;
+3. mescla de novo os registros encontrados (`DemoIngestionService::mergeRecords`);
+4. devolve cada registro com `found_in` (as fontes que o encontraram) e um relatório por fonte consultada: quantidade de registros, status e tempo (`searchedSources` na página e `meta.sources` na API).
+
+Uma fonte que falha (exceção do provedor) aparece como `error` no relatório e a busca segue nas outras. Fonte inativa não é consultada.
+
+O tipo é **obrigatório**: o select ao lado do campo tem Nome (padrão), CPF, CNPJ, CNH, E-mail e Telefone (`tipo=name|cpf|cnpj|cnh|email|phone` na URL e na API). Não há detecção automática nem busca por ID; um registro é aberto pelo ID direto em `/consultas/{publicId}`. Sem tipo, ou com tipo desconhecido, a página volta para a home com um aviso; a API responde 422.
+
+| Tipo                       | Exemplo                                               | Comportamento                                                           |
 | -------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- |
-| ID                         | `REG-0004`                                            | Abre a consulta (ID inexistente cai no 404 demonstrativo)               |
+| Nome                       | `aurora lacerda`                                      | Parcial, sem acento nem maiúsculas; todas as palavras precisam aparecer |
 | CPF, CNPJ, CNH ou telefone | `301.482.115-10`, `12905330000130`, `(11) 90000-0001` | Compara só os dígitos; com um único resultado, abre a consulta          |
-| E-mail                     | `bento.rocha@mail.test`                               | Igualdade sem diferenciar maiúsculas                                    |
-| Nome                       | `aurora ficticia`                                     | Parcial, sem acento nem maiúsculas; todas as palavras precisam aparecer |
+| E-mail                     | `bento.rocha@mail.test`                               | Igualdade sem diferenciar maiúsculas; com um único resultado, abre      |
 
-O índice fica em `demo_search_terms` e é reconstruído a cada ingestão. Só campos visíveis são indexados: os dados ocultos do plano nunca são pesquisáveis. Os resultados mostram o CPF mascarado; o CPF completo aparece só na tela da consulta.
+A comparação (`DemoSearchNormalizer`) ignora acento, maiúsculas e pontuação, e o telefone ignora o +55. Os provedores só pesquisam campos visíveis: os dados ocultos do plano (`_hidden`) nunca são pesquisáveis. Os resultados mostram o CPF mascarado; o CPF completo aparece só na tela da consulta.
+
+Para ligar uma fonte a outro provedor (por exemplo, um cliente HTTP), implemente `DemoProvider` e registre com `DemoProviderRegistry::register(slug, provedor)`.
+
+#### Busca composta (nome + data de nascimento)
+
+Um nome curto ("heitor") pode trazer muitos registros. O campo opcional **Nascimento**, ao lado da busca (tipo Nome), deixa só quem nasceu naquela data: `nascimento=AAAA-MM-DD` na URL e na API.
+
+- O filtro vai para cada fonte (`search(tipo, termo, filtros)`), que aplica o que conhece para devolver menos registros. Hoje só o Cadastro Civil tem data de nascimento; Contatos e Localização devolvem todos os nomes que casam.
+- Antes de gravar, a busca confere a data de cada registro: vale a do payload mais confiável que a tiver ou, se nenhuma fonte desta busca a devolveu, a do registro já mesclado. Sem data conhecida, o registro não entra.
+- Quem não passa no filtro não é gravado nem mostrado, e a contagem por fonte já desconta os descartados.
+- Data inválida (`1990-02-31`) ou no futuro: a página volta para a home com um aviso; a API responde 422.
 
 ### Score de confiança
 
@@ -181,6 +215,21 @@ Rótulos: **Alto** (≥ 85), **Moderado** (65–84) e **Baixo** (< 65). O detalh
 - A ativação é registrada em `demo_plan_activations` (sem cobrança).
 - `DemoPlanService::hasHiddenAccess()` decide se `hidden_data` pode ser serializado.
 - As rotas de página e API usam o mesmo serviço, então o gating é idêntico nos dois canais.
+
+### Papéis e permissões
+
+Usa o [spatie/laravel-permission](https://spatie.be/docs/laravel-permission). Os papéis e o que cada um pode fazer estão em `app/Enums/Role.php` e `app/Enums/Permission.php`:
+
+| Papel      | `consultas.realizar` | `painel.visualizar` | `fontes.sincronizar` |
+| ---------- | :------------------: | :-----------------: | :------------------: |
+| `admin`    |          ✓           |          ✓          |          ✓           |
+| `operador` |          ✓           |          ✓          |                      |
+| `cliente`  |          ✓           |                     |                      |
+
+- As rotas checam a permissão com o middleware `can:` e também exigem e-mail verificado (`verified`).
+- Os papéis são criados por uma migration, então existem em qualquer ambiente depois do `migrate`. Depois de mudar os enums, rode `php artisan db:seed --class=RolesAndPermissionsSeeder` para sincronizar.
+- Cada usuário tem um papel. Todo cadastro novo recebe `cliente`.
+- O front recebe `auth.roles` e `auth.permissions` em toda página. `usePermissions().can()` esconde o que o usuário não pode usar, como o item Painel e o botão de sincronizar. Isso só afeta a interface: quem bloqueia o acesso são as rotas.
 
 ### Nomes realistas e aviso discreto
 
@@ -206,19 +255,23 @@ O arquivo contém 6 registros, 4 fontes, 6 módulos e 3 planos — todos inventa
 ```text
 app/
   Console/Commands/DemoIngestCommand.php
+  Console/Commands/UserRoleCommand.php   # user:role
+  Enums/Role.php, Permission.php         # papéis e permissões
   Demo/                      # domínio demonstrativo
     Consultation/            # registro e feedback de consultas
     Data/                    # leitura do seed JSON
     Ingestion/               # coleta + persistência de payloads
     Merge/                   # merge multi-fonte + trust score
     Plans/                   # plano em sessão e gating
-    Providers/               # contrato e provider JSON
+    Providers/               # contrato, registry e provider JSON
+    Search/                  # busca nas fontes compatíveis + normalização
   Http/Controllers/Demo/     # controllers Inertia e API
   Models/Demo*.php           # modelos do protótipo
 database/
   data/demo_seed.json        # seed sintético comentado
-  migrations/*demo*          # 9 tabelas do protótipo
+  migrations/*demo*          # 8 tabelas do protótipo
   seeders/DemoSeeder.php     # metadados + ingestão
+  seeders/RolesAndPermissionsSeeder.php  # sincroniza papéis com os enums
 resources/js/
   pages/demo/                # Home, Consulta, Planos, Painel, Modulos, NotFound
   components/demo/           # badge, modal de plano, trust score
@@ -242,15 +295,20 @@ vendor/bin/pint --test
 Cobertura dos testes de feature:
 
 - busca válida com dados fictícios, fontes e score;
+- busca em todas as fontes compatíveis, fonte inativa, fonte fora do ar e gravação do que a fonte devolveu (`DemoSourceSearchTest`);
+- busca composta por nome + data de nascimento, sem gravar quem não passa no filtro (`DemoCompoundSearchTest`);
 - busca inválida com 404 demonstrativo;
 - ativação de plano demo sem pagamento;
 - bloqueio de informações ocultas sem plano e revelação com plano;
 - avaliação de consulta após a busca;
 - registro incompleto com score menor;
-- páginas Inertia de home, consulta, planos, painel, módulos e 404.
+- páginas Inertia de home, consulta, planos, painel, módulos e 404;
+- acesso por papel: visitante, cliente, operador, admin, usuário sem papel e e-mail não verificado (`DemoAccessTest`);
+- comando `user:role`.
 
 ## Limitações intencionais
 
-- Não há autenticação obrigatória, cobrança, integração real ou persistência de plano em banco.
+- Não há cobrança, integração real ou persistência de plano em banco: o plano continua na sessão, sem ligação com o usuário.
+- Ainda não há tela de administração; papéis são trocados pelo comando `user:role`.
 - Os "provedores" são locais e leem o mesmo seed JSON; a arquitetura existe para demonstrar como múltiplas fontes seriam ingeridas, armazenadas e mescladas.
 - Nenhum dado deve ser usado para identificar, avaliar ou tomar decisões sobre pessoas.

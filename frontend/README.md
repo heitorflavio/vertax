@@ -26,7 +26,7 @@ Este diretório é um **índice de documentação** do frontend. O código real 
 
 ## Fluxos principais
 
-1. **Busca**: a home aceita nome, CPF, CNPJ, CNH, e-mail, telefone ou ID. Nome lista os resultados em `/buscar`; documento, e-mail, telefone ou ID com um único registro abre direto `/consultas/{publicId}`. IDs desconhecidos exibem a página 404 demonstrativa.
+1. **Busca**: a home pede o tipo (nome, CPF, CNPJ, CNH, e-mail ou telefone) e, para nome, uma data de nascimento opcional. Nome lista os resultados em `/buscar`; documento, e-mail ou telefone com um único registro abre direto `/consultas/{publicId}`. A tela de resultados mostra as bases consultadas e em quais cada registro foi encontrado. IDs desconhecidos em `/consultas/{publicId}` exibem a página 404 demonstrativa.
 2. **Resultado**: mostra nome, CPF completo (fictício e inválido), nascimento, fontes e score. O bloco de informações ocultas aparece bloqueado.
 3. **Plano**: sem plano ativo, o botão **Exibir informação** abre o modal. A ativação chama `POST /api/demo/plano/ativar` e recarrega a página com os dados ocultos.
 4. **Copiar**: o texto copiado inclui o aviso de que o resultado é fictício e sem validade legal.

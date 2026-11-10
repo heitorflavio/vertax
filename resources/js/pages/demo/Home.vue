@@ -37,6 +37,7 @@ const props = defineProps<{
     recentSearches: DemoRecentSearch[];
     initialQuery: string;
     initialType: string | null;
+    initialBirthDate: string | null;
 }>();
 </script>
 
@@ -46,8 +47,7 @@ const props = defineProps<{
     <div class="space-y-0.5">
         <h1 class="text-xl font-semibold tracking-tight">Buscar registro</h1>
         <p class="text-sm text-muted-foreground">
-            Pesquise por nome, CPF, CNPJ, CNH, e-mail, telefone ou ID do
-            registro.
+            Pesquise por nome, CPF, CNPJ, CNH, e-mail ou telefone.
         </p>
     </div>
 
@@ -56,6 +56,7 @@ const props = defineProps<{
             <DemoSearchForm
                 :initial-query="props.initialQuery"
                 :initial-type="props.initialType"
+                :initial-birth-date="props.initialBirthDate"
             />
         </CardContent>
     </Card>

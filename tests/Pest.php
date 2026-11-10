@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +46,11 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Usuário verificado com o papel informado. Os papéis e permissões já existem
+ * no banco de teste porque vêm de uma migration.
+ */
+function userWithRole(Role $role): User
 {
-    // ..
+    return User::factory()->create()->assignRole($role);
 }

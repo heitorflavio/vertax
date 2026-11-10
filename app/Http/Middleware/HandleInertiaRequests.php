@@ -37,11 +37,17 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                // Só para a interface decidir o que mostrar; o acesso de
+                // verdade é checado nas rotas (middleware "can:").
+                'roles' => fn (): array => $user?->getRoleNames()->values()->all() ?? [],
+                'permissions' => fn (): array => $user?->getAllPermissions()->pluck('name')->values()->all() ?? [],
             ],
             'demo' => [
                 'plan' => app(DemoPlanService::class)->status($request),

@@ -2,196 +2,216 @@
 
 namespace App\Demo\Search;
 
-use App\Demo\DemoConfig;
+use App\Demo\Ingestion\DemoIngestionService;
+use App\Demo\Providers\DemoProviderRegistry;
 use App\Models\DemoRecord;
-use App\Models\DemoSearchTerm;
-use Closure;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use App\Models\DemoSource;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
+use Throwable;
 
+/**
+ * Busca em todas as fontes compatíveis: o termo vai, no momento da busca, para
+ * cada fonte ativa que aceita o tipo escolhido (search_types). O que as fontes
+ * devolvem é gravado e mesclado como na ingestão, e cada resultado informa em
+ * quais fontes foi encontrado.
+ *
+ * Busca composta: filtros (ex.: data de nascimento) vão para as fontes, que
+ * aplicam o que conseguem, e são conferidos de novo aqui antes de gravar.
+ * Quem não passa no filtro não é gravado nem mostrado.
+ *
+ * @phpstan-type SourcePayload array{public_id: string, external_ref: string|null, fetched_at: CarbonInterface, payload: array<string, mixed>}
+ * @phpstan-type SearchFilters array{birth_date?: string}
+ * @phpstan-type FoundIn list<array{slug: string, name: string}>
+ * @phpstan-type SearchMatch array{record: DemoRecord, found_in: FoundIn}
+ * @phpstan-type SourceReport array{slug: string, name: string, status: string, hits: int, duration_ms: int}
+ * @phpstan-type Hit array{found_in: array<string, string>, payloads: list<array{source: DemoSource, payload: SourcePayload}>}
+ */
 class DemoSearchService
 {
-    /**
-     * Reconstrói o índice de busca de um registro a partir dos campos visíveis.
-     * Dados ocultos (hidden_data) nunca entram no índice.
-     */
-    public function index(DemoRecord $record): void
-    {
-        $terms = array_filter([
-            'name' => $this->normalizeName($record->full_name),
-            'cpf' => $this->digits($record->cpf),
-            'cnh' => $this->digits($record->cnh),
-            'cnpj' => $this->digits($record->cnpj),
-            'email' => mb_strtolower(trim((string) $record->email)),
-            'phone' => $this->phoneDigits($record->phone),
-        ], fn (string $value): bool => $value !== '');
-
-        DB::transaction(function () use ($record, $terms): void {
-            $record->searchTerms()->delete();
-
-            foreach ($terms as $type => $value) {
-                $record->searchTerms()->create(['type' => $type, 'value' => $value]);
-            }
-        });
-    }
+    public function __construct(
+        private readonly DemoProviderRegistry $providers,
+        private readonly DemoIngestionService $ingestion,
+        private readonly DemoSearchNormalizer $normalizer,
+    ) {}
 
     /**
-     * Procura no índice. Com $type (chave de DemoConfig::SEARCH_TYPE_LABELS)
-     * a busca fica restrita àquele campo; sem ele, o tipo é detectado pelo termo.
-     *
-     * @return array{kind: string, matches: list<array{record: DemoRecord, matched_by: string}>}
+     * @param  string  $type  chave de DemoConfig::SEARCH_TYPE_LABELS
+     * @param  SearchFilters  $filters  birth_date em Y-m-d
+     * @return array{matches: list<SearchMatch>, sources: list<SourceReport>}
      */
-    public function search(string $query, ?string $type = null, int $limit = 20): array
+    public function search(string $query, string $type, array $filters = [], int $limit = 20): array
     {
         $query = trim($query);
 
-        return match ($type ?? $this->detectType($query)) {
-            'id' => ['kind' => 'id', 'matches' => $this->idMatches($query)],
-            'email' => ['kind' => 'email', 'matches' => $this->emailMatches($query, $limit)],
-            'document' => ['kind' => 'document', 'matches' => $this->documentMatches($query, ['cpf', 'cnh', 'cnpj', 'phone'], $limit)],
-            'cpf', 'cnh', 'cnpj', 'phone' => ['kind' => 'document', 'matches' => $this->documentMatches($query, [$type], $limit)],
-            default => ['kind' => 'name', 'matches' => $this->nameMatches($query, $limit)],
-        };
-    }
+        /** @var array<string, Hit> $hits */
+        $hits = [];
+        $sources = [];
 
-    /**
-     * ID (REG-0001), e-mail, documento/telefone (só dígitos e pontuação) ou nome.
-     */
-    private function detectType(string $query): string
-    {
-        return match (true) {
-            preg_match('/^'.DemoConfig::PUBLIC_ID_PREFIX.'-\d+$/i', $query) === 1 => 'id',
-            str_contains($query, '@') => 'email',
-            preg_match('/^[\d\s.\-\/()+]+$/', $query) === 1 => 'document',
-            default => 'name',
-        };
-    }
+        foreach ($this->compatibleSources($type) as $source) {
+            ['report' => $report, 'found' => $found] = $this->searchSource($source, $type, $query, $filters);
+            $sources[] = $report;
 
-    /**
-     * @return list<array{record: DemoRecord, matched_by: string}>
-     */
-    private function idMatches(string $query): array
-    {
-        $record = DemoRecord::query()->publicId($query)->first();
-
-        return $record === null ? [] : [['record' => $record, 'matched_by' => 'id']];
-    }
-
-    /**
-     * @return list<array{record: DemoRecord, matched_by: string}>
-     */
-    private function emailMatches(string $query, int $limit): array
-    {
-        $email = mb_strtolower($query);
-
-        return $this->findTerms(function (Builder $terms) use ($email): void {
-            $terms->where('type', 'email')->where('value', $email);
-        }, $limit);
-    }
-
-    /**
-     * Compara só os dígitos. Telefone ignora o +55.
-     *
-     * @param  list<string>  $types  subconjunto de cpf, cnh, cnpj e phone
-     * @return list<array{record: DemoRecord, matched_by: string}>
-     */
-    private function documentMatches(string $query, array $types, int $limit): array
-    {
-        $digits = $this->digits($query);
-        $phone = $this->phoneDigits($query);
-        $documentTypes = array_values(array_intersect($types, ['cpf', 'cnh', 'cnpj']));
-        $searchPhone = in_array('phone', $types, true);
-
-        if ($digits === '') {
-            return [];
-        }
-
-        return $this->findTerms(function (Builder $terms) use ($digits, $phone, $documentTypes, $searchPhone): void {
-            $terms
-                ->where(function (Builder $terms) use ($digits, $documentTypes): void {
-                    $terms->whereIn('type', $documentTypes)->where('value', $digits);
-                })
-                ->when($searchPhone, fn (Builder $terms) => $terms->orWhere(function (Builder $terms) use ($phone): void {
-                    $terms->where('type', 'phone')->where('value', $phone);
-                }));
-        }, $limit);
-    }
-
-    /**
-     * Busca parcial por nome: todas as palavras precisam aparecer, sem
-     * diferenciar acento ou maiúsculas.
-     *
-     * @return list<array{record: DemoRecord, matched_by: string}>
-     */
-    private function nameMatches(string $query, int $limit): array
-    {
-        $tokens = array_values(array_filter(explode(' ', $this->normalizeName($query))));
-
-        if ($tokens === []) {
-            return [];
-        }
-
-        return $this->findTerms(function (Builder $terms) use ($tokens): void {
-            $terms->where('type', 'name');
-
-            foreach ($tokens as $token) {
-                $terms->where('value', 'like', "%{$token}%");
+            foreach ($found as $payload) {
+                $publicId = $payload['public_id'];
+                $hits[$publicId]['found_in'][$source->slug] = $source->name;
+                $hits[$publicId]['payloads'][] = ['source' => $source, 'payload' => $payload];
             }
-        }, $limit);
+        }
+
+        $hits = $this->applyFilters($hits, $filters);
+
+        foreach ($hits as $hit) {
+            foreach ($hit['payloads'] as ['source' => $source, 'payload' => $payload]) {
+                $this->ingestion->store($source, $payload);
+            }
+        }
+
+        // Quantos registros de cada fonte sobraram depois dos filtros.
+        foreach ($sources as $index => $report) {
+            $sources[$index]['hits'] = count(array_filter(
+                $hits,
+                fn (array $hit): bool => isset($hit['found_in'][$report['slug']]),
+            ));
+        }
+
+        return [
+            'matches' => $this->matches($hits, $filters, $limit),
+            'sources' => $sources,
+        ];
     }
 
     /**
-     * @param  Closure(Builder<DemoSearchTerm>): void  $constraints
-     * @return list<array{record: DemoRecord, matched_by: string}>
+     * Fontes ativas que aceitam o tipo, da mais confiável para a menos
+     * confiável.
+     *
+     * @return Collection<int, DemoSource>
      */
-    private function findTerms(Closure $constraints, int $limit): array
+    private function compatibleSources(string $type): Collection
     {
-        $query = DemoSearchTerm::query()->with('record');
-        $constraints($query);
+        return DemoSource::query()
+            ->where('is_active', true)
+            ->orderByDesc('reliability')
+            ->get()
+            ->filter(fn (DemoSource $source): bool => $source->supportsSearch($type))
+            ->values();
+    }
 
+    /**
+     * Consulta uma fonte. Se ela falhar, o erro fica no relatório e a busca
+     * segue nas outras.
+     *
+     * @param  SearchFilters  $filters
+     * @return array{report: SourceReport, found: list<SourcePayload>}
+     */
+    private function searchSource(DemoSource $source, string $type, string $query, array $filters): array
+    {
+        $startedAt = hrtime(true);
+        $status = 'ok';
+
+        try {
+            $found = $this->providers->for($source->slug)->search($type, $query, $filters);
+        } catch (Throwable $exception) {
+            report($exception);
+            $found = [];
+            $status = 'error';
+        }
+
+        return [
+            'report' => [
+                'slug' => $source->slug,
+                'name' => $source->name,
+                'status' => $status,
+                'hits' => 0,
+                'duration_ms' => intdiv(hrtime(true) - $startedAt, 1_000_000),
+            ],
+            'found' => $found,
+        ];
+    }
+
+    /**
+     * Confere os filtros antes de gravar qualquer coisa. A data de nascimento
+     * vem do payload mais confiável que a tiver; se nenhuma fonte desta busca
+     * a devolveu, vale a do registro já mesclado. Sem data conhecida, o
+     * registro não passa: a busca composta só mostra quem confere.
+     *
+     * @param  array<string, Hit>  $hits
+     * @param  SearchFilters  $filters
+     * @return array<string, Hit>
+     */
+    private function applyFilters(array $hits, array $filters): array
+    {
+        $birthDate = $filters['birth_date'] ?? null;
+
+        if ($birthDate === null || $hits === []) {
+            return $hits;
+        }
+
+        $storedBirthDates = DemoRecord::query()
+            ->whereIn('public_id', array_map('strval', array_keys($hits)))
+            ->get(['public_id', 'birth_date'])
+            ->mapWithKeys(fn (DemoRecord $record): array => [
+                $record->public_id => $record->birth_date->format('Y-m-d'),
+            ]);
+
+        return array_filter(
+            $hits,
+            function (array $hit, int|string $publicId) use ($birthDate, $storedBirthDates): bool {
+                foreach ($hit['payloads'] as ['payload' => $payload]) {
+                    $payloadBirthDate = $this->normalizer->date($payload['payload']['birth_date'] ?? null);
+
+                    if ($payloadBirthDate !== null) {
+                        return $payloadBirthDate === $birthDate;
+                    }
+                }
+
+                return $storedBirthDates->get((string) $publicId) === $birthDate;
+            },
+            ARRAY_FILTER_USE_BOTH,
+        );
+    }
+
+    /**
+     * Mescla todos os registros encontrados (as fontes acabaram de devolver
+     * dados novos) e devolve até $limit, por ID.
+     *
+     * @param  array<string, Hit>  $hits
+     * @param  SearchFilters  $filters
+     * @return list<SearchMatch>
+     */
+    private function matches(array $hits, array $filters, int $limit): array
+    {
+        if ($hits === []) {
+            return [];
+        }
+
+        ksort($hits, SORT_STRING);
+        $records = $this->ingestion->mergeRecords(array_map('strval', array_keys($hits)));
+        $birthDate = $filters['birth_date'] ?? null;
         $matches = [];
 
-        foreach ($query->orderBy('demo_record_id')->limit($limit)->get() as $term) {
-            $record = $term->record;
+        foreach ($hits as $publicId => $hit) {
+            $record = $records[(string) $publicId];
 
-            if ($record === null || isset($matches[$record->id])) {
+            // O merge pode ter escolhido a data de uma fonte mais confiável que
+            // não participou desta busca: o registro final também precisa bater.
+            if ($birthDate !== null && $record->birth_date->format('Y-m-d') !== $birthDate) {
                 continue;
             }
 
-            $matches[$record->id] = ['record' => $record, 'matched_by' => $term->type];
+            $foundIn = [];
+
+            foreach ($hit['found_in'] as $slug => $name) {
+                $foundIn[] = ['slug' => $slug, 'name' => $name];
+            }
+
+            $matches[] = ['record' => $record, 'found_in' => $foundIn];
+
+            if (count($matches) === $limit) {
+                break;
+            }
         }
 
-        return array_values($matches);
-    }
-
-    private function normalizeName(?string $value): string
-    {
-        return Str::of((string) $value)
-            ->ascii()
-            ->lower()
-            ->replaceMatches('/[^a-z0-9]+/', ' ')
-            ->squish()
-            ->toString();
-    }
-
-    private function digits(?string $value): string
-    {
-        return (string) preg_replace('/\D+/', '', (string) $value);
-    }
-
-    /**
-     * Telefone sem o código do país (+55), para "11 90000-0001" e
-     * "+55 11 90000-0001" caírem no mesmo termo.
-     */
-    private function phoneDigits(?string $value): string
-    {
-        $digits = $this->digits($value);
-
-        if (strlen($digits) >= 12 && str_starts_with($digits, '55')) {
-            return substr($digits, 2);
-        }
-
-        return $digits;
+        return $matches;
     }
 }

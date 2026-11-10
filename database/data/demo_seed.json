@@ -8,11 +8,12 @@
             "cnh": "CNHs fictícias de 11 dígitos com dígito verificador inválido. DEMO-0005 não tem CNH de propósito (campo opcional).",
             "cnpj": "CNPJs de empresas inventadas, com dígito verificador inválido. Só DEMO-0003 e DEMO-0006 têm vínculo empresarial.",
             "cpf_display": "A tela de resultado mostra o CPF completo; listagens e a API de registros mostram a versão mascarada (***.NNN.***-NN).",
-            "search": "A busca da home aceita ID, nome, CPF, CNPJ, CNH, e-mail ou telefone. Só campos visíveis entram no índice; dados _hidden nunca são pesquisáveis.",
+            "search": "A busca consulta, no momento, cada fonte que aceita o tipo do termo (search_types da fonte): nome, CPF, CNH, CNPJ, e-mail ou telefone. ID é resolvido localmente. Dados _hidden nunca são pesquisáveis.",
             "names": "Nomes inventados e sem marcadores. O que garante que nenhum registro é uma pessoa real são os documentos com dígito verificador inválido e os e-mails no domínio reservado .test.",
             "hidden": "O bloco _hidden de cada fonte simula um dado premium (fictício) usado no merge e no gating de plano.",
             "days_ago": "Idade simulada do payload de cada fonte para o cálculo de atualidade do score de confiança.",
-            "public_id": "IDs no formato REG-NNNN. Qualquer outro ID retorna 404."
+            "public_id": "IDs no formato REG-NNNN. Qualquer outro ID retorna 404.",
+            "search_keys": "Contatos e Localização repetem nome e CPF do Cadastro Civil, e Crédito repete o CPF, para que mais de uma fonte responda à mesma busca. Os valores são idênticos aos do Cadastro Civil, que continua vencendo o merge por ter a maior confiabilidade; a concordância entre fontes (consistência do score) sobe um pouco."
         },
         "sources": [
             {
@@ -21,6 +22,7 @@
                 "category": "Registro",
                 "reliability": 92,
                 "description": "Nome, CPF, CNH, nascimento e filiação.",
+                "search_types": ["name", "cpf", "cnh"],
                 "notes": "Maior peso de confiabilidade do protótipo."
             },
             {
@@ -28,7 +30,8 @@
                 "name": "Contatos",
                 "category": "Contato",
                 "reliability": 76,
-                "description": "E-mail, telefone e cidade.",
+                "description": "Nome, CPF, e-mail, telefone e cidade.",
+                "search_types": ["name", "cpf", "email", "phone"],
                 "notes": "Pode divergir da fonte de localização em alguns registros para exercitar o merge."
             },
             {
@@ -36,7 +39,8 @@
                 "name": "Localização",
                 "category": "Localização",
                 "reliability": 68,
-                "description": "Endereço e geocódigo.",
+                "description": "Nome, CPF, endereço e geocódigo.",
+                "search_types": ["name", "cpf"],
                 "notes": "Peso menor que a fonte de contato para demonstrar resolução de conflito."
             },
             {
@@ -44,7 +48,8 @@
                 "name": "Crédito",
                 "category": "Crédito",
                 "reliability": 58,
-                "description": "Renda presumida, score e vínculos empresariais.",
+                "description": "CPF, renda presumida, score e vínculos empresariais.",
+                "search_types": ["cpf", "cnpj"],
                 "notes": "Contribui apenas com informações ocultas e tem o menor peso."
             }
         ],
@@ -181,6 +186,8 @@
                     "external_ref": "ctt-0001",
                     "days_ago": 1,
                     "payload": {
+                        "full_name": "Aurora Mendes Lacerda",
+                        "cpf": "301.482.115-10",
                         "email": "aurora.lacerda@mail.test",
                         "phone": "+55 11 90000-0001",
                         "city": "Campinas",
@@ -195,6 +202,8 @@
                     "external_ref": "geo-0001",
                     "days_ago": 3,
                     "payload": {
+                        "full_name": "Aurora Mendes Lacerda",
+                        "cpf": "301.482.115-10",
                         "address": "Rua das Acácias, 100",
                         "city": "Campinas",
                         "state": "SP",
@@ -208,6 +217,7 @@
                     "external_ref": "crd-0001",
                     "days_ago": 5,
                     "payload": {
+                        "cpf": "301.482.115-10",
                         "_hidden": {
                             "renda_presumida": "R$ 6.800,00",
                             "score_credito": "712"
@@ -240,6 +250,8 @@
                     "external_ref": "ctt-0002",
                     "days_ago": 2,
                     "payload": {
+                        "full_name": "Bento Almeida Rocha",
+                        "cpf": "402.713.226-20",
                         "email": "bento.rocha@mail.test",
                         "phone": "+55 21 90000-0002",
                         "city": "Niterói",
@@ -254,6 +266,7 @@
                     "external_ref": "crd-0002",
                     "days_ago": 6,
                     "payload": {
+                        "cpf": "402.713.226-20",
                         "city": "Niterói",
                         "state": "RJ",
                         "_hidden": {
@@ -288,6 +301,8 @@
                     "external_ref": "ctt-0003",
                     "days_ago": 1,
                     "payload": {
+                        "full_name": "Cora Ribeiro Antunes",
+                        "cpf": "503.905.337-30",
                         "email": "cora.antunes@mail.test",
                         "phone": "+55 31 90000-0003",
                         "city": "Belo Horizonte",
@@ -302,6 +317,8 @@
                     "external_ref": "geo-0003",
                     "days_ago": 2,
                     "payload": {
+                        "full_name": "Cora Ribeiro Antunes",
+                        "cpf": "503.905.337-30",
                         "address": "Rua das Palmeiras, 300",
                         "city": "Belo Horizonte",
                         "state": "MG",
@@ -315,6 +332,7 @@
                     "external_ref": "crd-0003",
                     "days_ago": 7,
                     "payload": {
+                        "cpf": "503.905.337-30",
                         "cnpj": "12.905.330/0001-30",
                         "_hidden": {
                             "renda_presumida": "R$ 9.400,00",
@@ -349,6 +367,8 @@
                     "external_ref": "ctt-0004",
                     "days_ago": 2,
                     "payload": {
+                        "full_name": "Davi Costa Moreira",
+                        "cpf": "604.246.448-40",
                         "email": "davi.moreira@mail.test",
                         "phone": "+55 41 90000-0004",
                         "city": "Joinville",
@@ -363,6 +383,8 @@
                     "external_ref": "geo-0004",
                     "days_ago": 9,
                     "payload": {
+                        "full_name": "Davi Costa Moreira",
+                        "cpf": "604.246.448-40",
                         "address": "Travessa dos Ipês, 400",
                         "city": "Joinville",
                         "state": "SC"
@@ -373,6 +395,7 @@
                     "external_ref": "crd-0004",
                     "days_ago": 8,
                     "payload": {
+                        "cpf": "604.246.448-40",
                         "_hidden": {
                             "renda_presumida": "R$ 5.250,00",
                             "score_credito": "655"
@@ -405,6 +428,8 @@
                     "external_ref": "geo-0005",
                     "days_ago": 4,
                     "payload": {
+                        "full_name": "Eva Nunes Barbosa",
+                        "cpf": "705.368.559-50",
                         "address": "Alameda dos Jacarandás, 500",
                         "city": "Porto Alegre",
                         "state": "RS",
@@ -418,6 +443,7 @@
                     "external_ref": "crd-0005",
                     "days_ago": 10,
                     "payload": {
+                        "cpf": "705.368.559-50",
                         "_hidden": {
                             "renda_presumida": "R$ 2.100,00",
                             "score_credito": "431"
@@ -450,6 +476,8 @@
                     "external_ref": "ctt-0006",
                     "days_ago": 1,
                     "payload": {
+                        "full_name": "Fábio Lima Teixeira",
+                        "cpf": "806.579.660-60",
                         "email": "fabio.teixeira@mail.test",
                         "phone": "+55 51 90000-0006",
                         "city": "Caxias do Sul",
@@ -464,6 +492,8 @@
                     "external_ref": "geo-0006",
                     "days_ago": 2,
                     "payload": {
+                        "full_name": "Fábio Lima Teixeira",
+                        "cpf": "806.579.660-60",
                         "address": "Rua dos Girassóis, 600",
                         "city": "Caxias do Sul",
                         "state": "RS",
@@ -477,6 +507,7 @@
                     "external_ref": "crd-0006",
                     "days_ago": 4,
                     "payload": {
+                        "cpf": "806.579.660-60",
                         "cnpj": "16.579.660/0001-60",
                         "_hidden": {
                             "renda_presumida": "R$ 12.300,00",

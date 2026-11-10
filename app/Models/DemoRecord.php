@@ -110,12 +110,6 @@ class DemoRecord extends Model
         return $this->hasMany(DemoRecordSource::class);
     }
 
-    /** @return HasMany<DemoSearchTerm, $this> */
-    public function searchTerms(): HasMany
-    {
-        return $this->hasMany(DemoSearchTerm::class);
-    }
-
     /** @return HasMany<DemoConsultation, $this> */
     public function consultations(): HasMany
     {

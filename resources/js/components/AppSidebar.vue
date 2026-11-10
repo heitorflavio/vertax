@@ -8,6 +8,7 @@ import {
     FolderGit2,
     LayoutGrid,
     LogIn,
+    Radio,
     Search,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -24,12 +25,14 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { usePermissions } from '@/composables/usePermissions';
 import { dashboard, home, login } from '@/routes';
 import demo from '@/routes/demo';
 import type { NavItem } from '@/types';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const { can } = usePermissions();
 
 const mainNavItems: NavItem[] = [
     {
@@ -56,11 +59,24 @@ const demoNavItems = computed<NavItem[]>(() => [
         icon: CreditCard,
         badge: page.props.demo.plan.active ? 'Ativo' : undefined,
     },
-    {
-        title: 'Painel',
-        href: demo.panel(),
-        icon: Database,
-    },
+    ...(can('painel.visualizar')
+        ? [
+              {
+                  title: 'Painel',
+                  href: demo.panel(),
+                  icon: Database,
+              },
+          ]
+        : []),
+    ...(can('fontes.gerenciar')
+        ? [
+              {
+                  title: 'Fontes',
+                  href: '/fontes',
+                  icon: Radio,
+              },
+          ]
+        : []),
 ]);
 
 const footerNavItems: NavItem[] = [

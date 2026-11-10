@@ -16,11 +16,14 @@ Este diretório é um **índice de documentação** do backend demonstrativo. O 
 | Merge multi-fonte                 | `app/Demo/Merge/DemoMergeService.php`                                                     |
 | Score de confiança                | `app/Demo/Merge/DemoTrustScoreService.php`                                                |
 | Consultas e feedback              | `app/Demo/Consultation/DemoConsultationService.php`                                       |
-| Busca e índice                    | `app/Demo/Search/DemoSearchService.php`                                                   |
+| Busca nas fontes compatíveis      | `app/Demo/Search/DemoSearchService.php`, `DemoSearchNormalizer.php`                       |
 | Plano em sessão e gating          | `app/Demo/Plans/DemoPlanService.php`                                                      |
 | Controllers web/API               | `app/Http/Controllers/Demo/`                                                              |
 | Modelos                           | `app/Models/Demo*.php`                                                                    |
 | Comando de ingestão               | `app/Console/Commands/DemoIngestCommand.php`                                              |
+| Papéis e permissões               | `app/Enums/Role.php`, `app/Enums/Permission.php`                                          |
+| Sincronização de papéis           | `database/seeders/RolesAndPermissionsSeeder.php`                                          |
+| Comando de papel do usuário       | `app/Console/Commands/UserRoleCommand.php`                                                |
 | Migrations                        | `database/migrations/*demo*`                                                              |
 | Seed sintético                    | `database/data/demo_seed.json`                                                            |
 | Seeder                            | `database/seeders/DemoSeeder.php`                                                         |
@@ -29,9 +32,9 @@ Este diretório é um **índice de documentação** do backend demonstrativo. O 
 
 ## Modelo de dados
 
-Nove tabelas, todas com prefixo `demo_`:
+Oito tabelas, todas com prefixo `demo_`:
 
-- `demo_sources`: fontes fictícias e confiabilidade.
+- `demo_sources`: fontes fictícias, confiabilidade e `search_types` (por quais dados cada fonte aceita busca).
 - `demo_modules`: catálogo de módulos marcados como DEMO.
 - `demo_plans`: planos fictícios, duração e liberação de dados ocultos.
 - `demo_records`: registro canônico mesclado.
@@ -39,13 +42,14 @@ Nove tabelas, todas com prefixo `demo_`:
 - `demo_consultations`: consultas registradas, score no momento e feedback.
 - `demo_plan_activations`: auditoria de ativações de plano (sem pagamento).
 - `demo_ingestion_runs`: execuções de ingestão, contadores, duração e status.
-- `demo_search_terms`: índice de busca (nome, CPF, CNH, CNPJ, e-mail, telefone) normalizado por registro.
 
 ## Pipeline
 
 ```text
 demo_seed.json
     │  (SeedJsonProvider — simula API de terceiro)
+    │    fetch():  ingestão completa (demo:ingest, seeder, botão do painel)
+    │    search(): busca, só nas fontes cujo search_types aceita o tipo do termo
     ▼
 demo_record_sources  ── payload bruto, confiabilidade, fetched_at
     │  (DemoMergeService: maior confiabilidade por campo + _hidden)
@@ -63,23 +67,27 @@ php artisan migrate
 php artisan db:seed --class=DemoSeeder   # metadados + ingestão completa
 php artisan demo:ingest                  # reingestão de todas as fontes
 php artisan demo:ingest --source=cadastro-civil-demo
+php artisan db:seed --class=RolesAndPermissionsSeeder  # ressincroniza papéis com os enums
+php artisan user:role pessoa@mail.test admin           # admin, operador ou cliente
 ```
 
 ## API
 
 Todas as respostas incluem `demo: true` e o aviso legal. O plano é mantido na sessão, por isso as rotas de API estão no grupo `web` (cookie + CSRF).
 
-| Método | Rota                                    |
-| ------ | --------------------------------------- |
-| GET    | `/api/demo/registros`                   |
-| GET    | `/api/demo/busca?q=`                    |
-| GET    | `/api/demo/consulta/{publicId}`         |
-| GET    | `/api/demo/status`                      |
-| POST   | `/api/demo/plano/ativar`                |
-| POST   | `/api/demo/consulta/{publicId}/avaliar` |
-| POST   | `/api/demo/sincronizar`                 |
-| GET    | `/api/demo/modulos`                     |
-| GET    | `/api/demo/planos`                      |
+| Método | Rota                                    | Acesso               |
+| ------ | --------------------------------------- | -------------------- |
+| GET    | `/api/demo/registros`                   | `painel.visualizar`  |
+| GET    | `/api/demo/busca?q=&tipo=&nascimento=`  | `consultas.realizar` |
+| GET    | `/api/demo/consulta/{publicId}`         | `consultas.realizar` |
+| GET    | `/api/demo/status`                      | público              |
+| POST   | `/api/demo/plano/ativar`                | público              |
+| POST   | `/api/demo/consulta/{publicId}/avaliar` | `consultas.realizar` |
+| POST   | `/api/demo/sincronizar`                 | `fontes.sincronizar` |
+| GET    | `/api/demo/modulos`                     | público              |
+| GET    | `/api/demo/planos`                      | público              |
+
+Rotas protegidas exigem login com e-mail verificado: sem sessão respondem 401; sem a permissão, 403. O que cada papel recebe está na seção "Papéis e permissões" do [README principal](../README.md).
 
 IDs desconhecidos retornam `404` com `error: "demo_record_not_found"` e a lista de IDs válidos.
 

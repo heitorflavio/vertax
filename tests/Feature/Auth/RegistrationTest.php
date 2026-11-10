@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Role;
+use App\Models\User;
 use Laravel\Fortify\Features;
 
 beforeEach(function () {
@@ -22,4 +24,7 @@ test('new users can register', function () {
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('dashboard', absolute: false));
+
+    expect(User::query()->where('email', 'test@example.com')->sole()->getRoleNames()->all())
+        ->toBe([Role::Customer->value]);
 });
