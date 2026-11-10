@@ -1,0 +1,530 @@
+/*
+  Landing pública (pages/Welcome.vue). Os tokens do shadcn (--background,
+  --foreground, --border...) são redefinidos dentro de .landing, então as
+  utilidades de sempre (bg-background, text-muted-foreground, border-border)
+  funcionam aqui com a paleta da landing, que é escura por padrão.
+*/
+
+@theme inline {
+    --color-band: var(--band);
+    --color-surface-1: var(--surface-1);
+    --color-surface-2: var(--surface-2);
+    --color-surface-3: var(--surface-3);
+    --color-brand-blue: var(--brand-blue);
+    --color-brand-orange: var(--brand-orange);
+    --font-geist: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    --font-geist-mono:
+        'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@theme {
+    --breakpoint-3xl: 120rem;
+}
+
+.landing {
+    --background: #0a0a0b;
+    --foreground: #f7f7f8;
+    --card: #111113;
+    --card-foreground: #f7f7f8;
+    --popover: #161618;
+    --popover-foreground: #f7f7f8;
+    --primary: #f7f7f8;
+    --primary-foreground: #0a0a0b;
+    --secondary: #161618;
+    --secondary-foreground: #f7f7f8;
+    --muted: #161618;
+    --muted-foreground: #a0a0a0;
+    --accent: #1c1c1e;
+    --accent-foreground: #f7f7f8;
+    --border: #27272a;
+    --input: #27272a;
+    --ring: rgb(255 255 255 / 0.2);
+    --band: #0e0e10;
+    --surface-1: #111113;
+    --surface-2: #161618;
+    --surface-3: #1c1c1e;
+    --brand-blue: #5b8cff;
+    --brand-orange: #ff8a5b;
+    --header-bg: rgb(10 10 11 / 0.86);
+    --header-border: rgb(255 255 255 / 0.07);
+    --rgb-blue: 62 139 255;
+    --rgb-blue-deep: 37 99 235;
+    --rgb-orange: 255 138 91;
+    --rgb-orange-soft: 255 165 116;
+    --rgb-glow-a: 255 138 91;
+    --rgb-glow-b: 91 140 255;
+    --art-from: #080d1e;
+    --art-via: #1a3a6b;
+    --art-to: #365ecf;
+    --code-key: #e6e6e8;
+    --code-string: #8ddb8c;
+    --code-number: #ff9f7a;
+    --code-literal: #7aa2ff;
+
+    color-scheme: dark;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family:
+        'Geist', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji';
+}
+
+.landing[data-theme='light'] {
+    --background: #ffffff;
+    --foreground: #0a2540;
+    --card: #ffffff;
+    --card-foreground: #0a2540;
+    --popover: #ffffff;
+    --popover-foreground: #0a2540;
+    --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --secondary: #f6f9fc;
+    --secondary-foreground: #0a2540;
+    --muted: #f6f9fc;
+    --muted-foreground: #425466;
+    --accent: #eef4ff;
+    --accent-foreground: #0a2540;
+    --border: #e3e8ee;
+    --input: #e3e8ee;
+    --ring: rgb(37 99 235 / 0.55);
+    --band: #f6f9fc;
+    --surface-1: #ffffff;
+    --surface-2: #f6f9fc;
+    --surface-3: #eef4ff;
+    --brand-blue: #2563eb;
+    --brand-orange: #c2410c;
+    --header-bg: rgb(255 255 255 / 0.9);
+    --header-border: rgb(10 37 64 / 0.11);
+    --rgb-glow-a: 224 106 52;
+    --rgb-glow-b: 37 99 235;
+    --art-from: #f1f5ff;
+    --art-via: #d8e4ff;
+    --art-to: #aac4fb;
+    --code-key: #0a2540;
+    --code-string: #11704a;
+    --code-number: #c2410c;
+    --code-literal: #2563eb;
+
+    color-scheme: light;
+}
+
+html.landing-html {
+    background-color: #0a0a0b;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+}
+
+html.landing-html[data-landing-theme='light'] {
+    background-color: #ffffff;
+}
+
+/* Telas a partir de 1920px: tudo cresce ~6% e o contêiner se abre. */
+@media (width >= 120rem) {
+    html.landing-html {
+        font-size: 17px;
+    }
+
+    .landing .max-w-7xl {
+        max-width: min(88vw, 110rem);
+    }
+}
+
+@layer components {
+    .lp-section {
+        padding-block: max(4rem, min(5vw + 2rem, 6rem));
+    }
+
+    .lp-mono {
+        font-family:
+            'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    /* Mancha de cor do hero: gradientes radiais desfocados, presos à direita. */
+    .lp-ribbon-wrap {
+        position: absolute;
+        inset-block: 0;
+        left: 50%;
+        z-index: 0;
+        width: 100vw;
+        overflow: hidden;
+        pointer-events: none;
+        transform: translateX(-50%);
+    }
+
+    .lp-ribbon-wrap::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            100deg,
+            var(--background) 16%,
+            color-mix(in srgb, var(--background) 45%, transparent) 42%,
+            transparent 62%
+        );
+    }
+
+    .lp-ribbon {
+        position: absolute;
+        top: -40%;
+        right: -20%;
+        width: 1100px;
+        max-width: 120vw;
+        height: 880px;
+        border-radius: 46% 54% 58% 42% / 42% 46% 54% 58%;
+        background:
+            radial-gradient(
+                closest-side at 30% 35%,
+                rgb(var(--rgb-orange) / 0.88),
+                transparent 70%
+            ),
+            radial-gradient(
+                closest-side at 62% 20%,
+                rgb(var(--rgb-orange-soft) / 0.74),
+                transparent 70%
+            ),
+            radial-gradient(
+                closest-side at 78% 48%,
+                rgb(var(--rgb-blue) / 0.8),
+                transparent 72%
+            ),
+            radial-gradient(
+                closest-side at 50% 70%,
+                rgb(var(--rgb-blue-deep) / 0.82),
+                transparent 72%
+            ),
+            radial-gradient(
+                closest-side at 30% 78%,
+                rgb(var(--rgb-blue) / 0.7),
+                transparent 72%
+            ),
+            radial-gradient(
+                closest-side at 88% 82%,
+                rgb(var(--rgb-blue-deep) / 0.6),
+                transparent 72%
+            );
+        opacity: 0.9;
+        filter: blur(48px) saturate(114%);
+        transform: rotate(-14deg);
+        animation: lp-ribbon-drift 30s ease-in-out infinite alternate;
+        will-change: transform;
+    }
+
+    .landing[data-theme='light'] .lp-ribbon {
+        opacity: 0.55;
+        filter: blur(60px) saturate(125%);
+    }
+
+    /* Botão principal: uma borda de 2px por onde passam dois feixes de luz. */
+    .lp-glow-btn {
+        position: relative;
+        isolation: isolate;
+        display: inline-flex;
+        overflow: hidden;
+        border-radius: 0.5rem;
+        padding: 2px;
+    }
+
+    .lp-glow-btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        z-index: -1;
+        width: 500%;
+        aspect-ratio: 1;
+        background: conic-gradient(
+            from 0deg,
+            transparent 0deg,
+            rgb(var(--rgb-glow-a) / 0) 4deg,
+            rgb(var(--rgb-glow-a)) 14deg,
+            rgb(var(--rgb-glow-a)) 22deg,
+            rgb(var(--rgb-glow-a) / 0) 32deg,
+            transparent 40deg,
+            transparent 160deg,
+            rgb(var(--rgb-glow-b) / 0) 168deg,
+            rgb(var(--rgb-glow-b)) 178deg,
+            rgb(var(--rgb-glow-b)) 186deg,
+            rgb(var(--rgb-glow-b) / 0) 196deg,
+            transparent 204deg,
+            transparent 360deg
+        );
+        transform: translate(-50%, -50%);
+        animation: lp-border-spin 4.5s linear infinite;
+        pointer-events: none;
+    }
+
+    .lp-glow-btn > * {
+        display: inline-flex;
+        height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border-radius: calc(0.5rem - 2px);
+        background: var(--primary);
+        padding-inline: 2rem;
+        color: var(--primary-foreground);
+        font-size: 1rem;
+        font-weight: 500;
+        line-height: 1;
+        white-space: nowrap;
+        transition: opacity 0.2s;
+    }
+
+    .lp-glow-btn:hover > * {
+        opacity: 0.92;
+    }
+
+    .lp-card-wash {
+        background-image:
+            radial-gradient(
+                92% 84% at 100% 100%,
+                rgb(var(--rgb-blue) / 0.18),
+                rgb(var(--rgb-blue-deep) / 0.11) 30%,
+                rgb(var(--rgb-blue-deep) / 0.045) 58%,
+                transparent 82%
+            ),
+            radial-gradient(
+                58% 50% at 97% 3%,
+                rgb(var(--rgb-orange) / 0.11),
+                transparent 76%
+            );
+    }
+
+    .lp-card-wash-alt {
+        background-image:
+            radial-gradient(
+                88% 82% at 100% 0%,
+                rgb(var(--rgb-blue) / 0.17),
+                rgb(var(--rgb-blue-deep) / 0.105) 32%,
+                rgb(var(--rgb-blue-deep) / 0.04) 58%,
+                transparent 82%
+            ),
+            radial-gradient(
+                56% 48% at 3% 97%,
+                rgb(var(--rgb-orange) / 0.1),
+                transparent 76%
+            );
+    }
+
+    .lp-cta-wash {
+        background-color: var(--background);
+        background-image:
+            radial-gradient(
+                68% 78% at 0% 0%,
+                rgb(var(--rgb-orange) / 0.1),
+                transparent 66%
+            ),
+            radial-gradient(
+                58% 70% at 100% 100%,
+                rgb(var(--rgb-orange-soft) / 0.07),
+                transparent 68%
+            ),
+            radial-gradient(
+                116% 42% at 50% 100%,
+                rgb(var(--rgb-blue) / 0.07),
+                transparent 72%
+            );
+    }
+
+    .landing[data-theme='light'] .lp-cta-wash {
+        background-image:
+            radial-gradient(
+                68% 78% at 0% 0%,
+                rgb(var(--rgb-orange) / 0.2),
+                transparent 66%
+            ),
+            radial-gradient(
+                58% 70% at 100% 100%,
+                rgb(var(--rgb-orange-soft) / 0.18),
+                transparent 68%
+            ),
+            radial-gradient(
+                116% 42% at 50% 100%,
+                rgb(var(--rgb-blue) / 0.1),
+                transparent 72%
+            );
+    }
+
+    /* Fundo dos cards ilustrados: degradê azul que some para baixo + manchas. */
+    .lp-art {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+        mask-image: linear-gradient(
+            to bottom,
+            #000 0%,
+            #000 36%,
+            transparent 76%
+        );
+        background: linear-gradient(
+            140deg,
+            var(--art-from),
+            var(--art-via) 45%,
+            var(--art-to)
+        );
+    }
+
+    .lp-blob {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(42px);
+        animation: lp-blob-drift 16s ease-in-out infinite alternate;
+    }
+
+    .lp-marquee {
+        animation: lp-marquee var(--duration, 48s) linear infinite;
+    }
+
+    .lp-fade-x {
+        mask-image: linear-gradient(
+            to right,
+            transparent,
+            #000 8%,
+            #000 92%,
+            transparent
+        );
+    }
+
+    .lp-no-scrollbar {
+        scrollbar-width: none;
+    }
+
+    .lp-no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .lp-enter {
+        animation: lp-enter 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    }
+
+    .lp-reveal {
+        opacity: 0;
+        transform: translateY(14px);
+        transition:
+            opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+            transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+
+    .lp-reveal.is-visible {
+        opacity: 1;
+        transform: none;
+    }
+
+    .lp-progress {
+        transform-origin: left;
+        animation: lp-progress var(--duration, 6s) linear both;
+    }
+
+    .lp-pulse-ring {
+        animation: lp-pulse-ring 2.4s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
+    }
+
+    .lp-light-up {
+        animation: lp-light-up var(--duration, 6.6s) ease-in-out infinite;
+    }
+}
+
+@keyframes lp-ribbon-drift {
+    0% {
+        transform: rotate(-14deg) translate(0) scale(1);
+    }
+
+    50% {
+        transform: rotate(-11deg) translate(-2%, 2%) scale(1.03);
+    }
+
+    100% {
+        transform: rotate(-16deg) translate(1.5%, -1.5%) scale(1.015);
+    }
+}
+
+@keyframes lp-border-spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes lp-blob-drift {
+    to {
+        transform: translate(-8%, 6%) scale(1.08);
+    }
+}
+
+@keyframes lp-marquee {
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+@keyframes lp-enter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+
+@keyframes lp-progress {
+    from {
+        transform: scaleX(0);
+    }
+
+    to {
+        transform: scaleX(1);
+    }
+}
+
+@keyframes lp-pulse-ring {
+    from {
+        opacity: 0.7;
+        transform: scale(0.6);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(1.9);
+    }
+}
+
+@keyframes lp-light-up {
+    0%,
+    100% {
+        border-color: var(--border);
+        background-color: transparent;
+    }
+
+    8%,
+    22% {
+        border-color: rgb(var(--rgb-blue) / 0.55);
+        background-color: rgb(var(--rgb-blue) / 0.12);
+    }
+
+    34% {
+        border-color: var(--border);
+        background-color: transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.landing-html {
+        scroll-behavior: auto;
+    }
+
+    .lp-ribbon,
+    .lp-glow-btn::before,
+    .lp-blob,
+    .lp-marquee,
+    .lp-enter,
+    .lp-progress,
+    .lp-pulse-ring,
+    .lp-light-up {
+        animation: none;
+    }
+
+    .lp-reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}

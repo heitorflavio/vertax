@@ -4,6 +4,7 @@ use App\Enums\Permission;
 use App\Http\Controllers\Demo\DemoApiController;
 use App\Http\Controllers\Demo\DemoPageController;
 use App\Http\Controllers\Demo\DemoSourceController;
+use App\Http\Middleware\ShowLandingToGuests;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 | Acesso: catálogo de módulos e planos é público; buscar e consultar exigem
 | login com a permissão "consultas.realizar"; painel e sincronização exigem
 | as permissões próprias (ver App\Enums\Role para o que cada papel recebe).
+| A raiz mostra a landing para visitantes e a busca para quem está logado.
 */
 
 $consultations = ['auth', 'verified', 'can:'.Permission::RunConsultations->value];
@@ -26,8 +28,11 @@ $manageSources = ['auth', 'verified', 'can:'.Permission::ManageSources->value];
 Route::get('modulos', [DemoPageController::class, 'modulesPage'])->name('demo.modules');
 Route::get('planos', [DemoPageController::class, 'plans'])->name('demo.plans');
 
+Route::get('/', [DemoPageController::class, 'home'])
+    ->middleware([ShowLandingToGuests::class, 'verified', 'can:'.Permission::RunConsultations->value])
+    ->name('home');
+
 Route::middleware($consultations)->group(function (): void {
-    Route::get('/', [DemoPageController::class, 'home'])->name('home');
     Route::get('buscar', [DemoPageController::class, 'search'])->name('demo.search');
     Route::get('consultas/{publicId}', [DemoPageController::class, 'show'])->name('demo.show');
 });

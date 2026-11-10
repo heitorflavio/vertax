@@ -15,6 +15,16 @@ export default defineConfig({
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
                 }),
+                bunny('Geist', {
+                    weights: [400, 500, 600, 700],
+                    subsets: ['latin'],
+                    preload: false,
+                }),
+                bunny('Geist Mono', {
+                    weights: [400, 500],
+                    subsets: ['latin'],
+                    preload: false,
+                }),
             ],
         }),
         inertia(),

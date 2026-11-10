@@ -14,7 +14,6 @@ beforeEach(function () {
 test('visitante é mandado para o login ao buscar, consultar ou abrir o painel', function (string $url) {
     $this->get($url)->assertRedirect(route('login'));
 })->with([
-    'home' => '/',
     'busca' => '/buscar?q=aurora&tipo=name',
     'consulta' => '/consultas/REG-0001',
     'painel' => '/painel',
