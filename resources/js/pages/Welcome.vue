@@ -73,7 +73,7 @@ onBeforeUnmount(() => {
         <main id="conteudo" class="relative" tabindex="-1">
             <div
                 aria-hidden="true"
-                class="pointer-events-none absolute inset-0 z-10 mx-auto hidden max-w-7xl border-x border-border lg:block"
+                class="pointer-events-none absolute inset-0 z-10 mx-auto hidden max-w-7xl  lg:block"
             />
             <HeroSection
                 :can-register="canRegister"
